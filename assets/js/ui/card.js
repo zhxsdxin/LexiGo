@@ -1,9 +1,10 @@
 /**
  * 单词卡组件
  * ---------------------------------------------------------------
- * 学习页与复习页共用。核心流程固定为：
- *   单词 → 主动回忆 → 点击/空格揭示 → 认识 / 不认识
- * 默认只显示单词，不立即给出中文答案。
+ * 学习页与复习页共用。卡片为可翻转结构：
+ *   正面 → 日语单词 + 音调
+ *   背面 → 读音假名 + 词性 + 中文释义（+ 词库中存在的例句）
+ * 点击卡片左右翻转，时长控制在 200ms 内，不做弹跳和缩放。
  */
 (function (global) {
   'use strict';
@@ -28,15 +29,25 @@
    * 渲染一张单词卡
    * @param {HTMLElement} root  容器
    * @param {object} word       词库条目
-   * @param {object} opts       { revealed, onReveal, onKnown, onUnknown, onSpeak }
+   * @param {object} opts       { flipped, onFlip, onSpeak }
    */
   function render(root, word, opts) {
     opts = opts || {};
     var bank = global.LexiGo.WORD_BANK;
     var speech = global.LexiGo.Speech;
-    var revealed = !!opts.revealed;
+    var flipped = !!opts.flipped;
 
-    root.classList.toggle('is-revealed', revealed);
+    root.classList.toggle('is-flipped', flipped);
+
+    var pitch = bank.hasPitch(word.pitch) ? bank.pitchMark(word.pitch) : '';
+
+    // 音调标在假名上方右侧，词库中没有音调时不渲染
+    var pitchFront = pitch
+      ? '<span class="card__pitch" aria-hidden="true">' + pitch + '</span>'
+      : '';
+    var pitchBack = pitch
+      ? '<span class="card__pitch card__pitch--back" aria-hidden="true">' + pitch + '</span>'
+      : '';
 
     // 例句只在词库中存在时输出，不补齐、不编造
     var exampleHtml = '';
@@ -45,7 +56,7 @@
       var exCn = word.example.cn || '';
       exampleHtml =
         '<div class="card__example">' +
-        (exJp ? '<p class="card__example-jp">' + escapeHtml(exJp) + '</p>' : '') +
+        (exJp ? '<p class="card__example-jp" lang="ja">' + escapeHtml(exJp) + '</p>' : '') +
         (exCn ? '<p class="card__example-cn">' + escapeHtml(exCn) + '</p>' : '') +
         '</div>';
     }
@@ -53,17 +64,23 @@
     var posLabel = bank.posLabel(word.pos);
 
     var html =
-      '<div class="card__stage">' +
+      '<div class="card__inner">' +
+      // 正面：单词 + 音调
+      '<div class="card__face card__face--front">' +
       '<h2 class="card__word" lang="ja">' + escapeHtml(word.word) + '</h2>' +
-      (revealed
-        ? '<div class="card__answer">' +
-          '<p class="card__kana" lang="ja">' + escapeHtml(word.kana) + '</p>' +
-          '<div class="card__divider"></div>' +
-          '<p class="card__meaning">' + escapeHtml(word.meaning) + '</p>' +
-          (posLabel ? '<span class="card__pos">' + escapeHtml(posLabel) + '</span>' : '') +
-          exampleHtml +
-          '</div>'
-        : '<p class="card__hint">点击卡片或按空格查看释义</p>') +
+      pitchFront +
+      '</div>' +
+      // 背面：假名 + 词性 + 释义
+      '<div class="card__face card__face--back">' +
+      '<div class="card__kana-row">' +
+      '<p class="card__kana" lang="ja">' + escapeHtml(word.kana) + '</p>' +
+      pitchBack +
+      '</div>' +
+      '<div class="card__divider"></div>' +
+      '<p class="card__meaning">' + escapeHtml(word.meaning) + '</p>' +
+      (posLabel ? '<span class="card__pos">' + escapeHtml(posLabel) + '</span>' : '') +
+      exampleHtml +
+      '</div>' +
       '</div>' +
       '<button type="button" class="card__speak" data-act="speak"' +
       (speech.supported ? '' : ' disabled') +
@@ -74,12 +91,17 @@
 
     root.innerHTML = html;
 
-    // 点击卡片空白处揭示；点按钮不触发
-    root.addEventListener('click', function (e) {
-      if (e.target.closest('.card__speak')) return;
-      if (revealed) return;
-      if (opts.onReveal) opts.onReveal();
-    });
+    // 卡片根节点只绑定一次点击，避免每次 render 叠加监听器
+    if (!root.__lexigoBound) {
+      root.__lexigoBound = true;
+      root.addEventListener('click', function (e) {
+        if (e.target.closest('.card__speak')) return;
+        // 从 root 上读取当前回调，始终拿到最新闭包
+        var cb = root.__lexigoOnFlip;
+        if (cb) cb();
+      });
+    }
+    root.__lexigoOnFlip = opts.onFlip || null;
 
     var speakBtn = root.querySelector('[data-act="speak"]');
     if (speakBtn) {

@@ -32,6 +32,7 @@
     if (currentTab !== id) {
       if (currentTab === 'study' && views.study) views.study.reset();
       if (currentTab === 'review' && views.review) views.review.reset();
+      closePickers();
     }
     currentTab = id;
 
@@ -125,6 +126,11 @@
     });
   }
 
+  /** 切标签时收起展开中的词表 */
+  function closePickers() {
+    if (LG.Picker) LG.Picker.close();
+  }
+
   function bindKeys() {
     document.addEventListener('keydown', function (e) {
       var tag = (e.target && e.target.tagName) || '';
@@ -151,6 +157,7 @@
     load();
 
     bindTabs();
+    LG.Picker.bindAll();
 
     views.study = LG.StudyView;
     views.review = LG.ReviewView;

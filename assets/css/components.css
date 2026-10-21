@@ -9,7 +9,7 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
-  padding: 34px 26px 26px;
+  padding: 30px 26px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,7 +19,7 @@
   max-height: 460px;
   position: relative;
   cursor: pointer;
-  transition: box-shadow var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+  transition: box-shadow var(--t-base) var(--ease);
   flex: 1 1 auto;
 }
 
@@ -27,28 +27,49 @@
   box-shadow: var(--shadow-lift);
 }
 
-.card.is-revealed {
-  cursor: default;
+/* 翻转容器：perspective 提供 3D 纵深，rotateY 实现左右翻转 */
+.card__inner {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition: transform var(--t-slow) var(--ease);
 }
 
-.card__stage {
-  flex: 1;
+.card.is-flipped .card__inner {
+  transform: rotateY(180deg);
+}
+
+/* 正反两面。背面预旋转 180°，翻过去时才正对用户 */
+.card__face {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  gap: 12px;
+  padding: 8px 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-/* 词卡切换：轻微淡入，不翻转不弹跳 */
-.card__stage > * {
+.card__face--back {
+  transform: rotateY(180deg);
+}
+
+/* 切换单词时内容轻微淡入 */
+.card__face > * {
   animation: cardIn var(--t-slow) var(--ease);
 }
 
 @keyframes cardIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
@@ -68,44 +89,26 @@
   word-break: keep-all;
 }
 
-/* 未揭示时的轻提示 */
-.card__hint {
-  margin-top: 18px;
-  font-size: 12.5px;
+/* 音调番号：低饱和处理，不与单词争夺注意力 */
+.card__pitch {
+  display: inline-block;
+  font-family: var(--font-jp);
+  font-size: 14px;
+  line-height: 1;
   color: var(--ink-faint);
-  letter-spacing: 0.02em;
-  animation: hintPulse 2.6s var(--ease) infinite;
+  letter-spacing: 0.06em;
 }
 
-@keyframes hintPulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
+.card__pitch--back {
+  font-size: 15px;
 }
 
-/* 揭示区域 */
-.card__answer {
-  margin-top: 20px;
-  animation: answerIn var(--t-base) var(--ease);
+/* 背面：假名与音调并排 */
+.card__kana-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-@keyframes answerIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  align-items: baseline;
+  gap: 8px;
+  justify-content: center;
 }
 
 .card__kana {
@@ -336,11 +339,119 @@
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .navbar__counter strong {
   color: var(--ink);
   font-weight: 600;
+}
+
+/* ---------- 词表选择框 ---------- */
+.picker {
+  position: relative;
+}
+
+.picker__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink-soft);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.picker__toggle:hover {
+  background: var(--bg-soft);
+}
+
+.picker__toggle svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.picker__list {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 232px;
+  max-height: 268px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease),
+    visibility var(--t-fast);
+}
+
+.picker.is-open .picker__list {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+/* 单词、释义、标签三列对齐，中文释义左边缘保持一致 */
+.picker__item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 14px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.picker__item:hover {
+  background: var(--bg-soft);
+}
+
+.picker__item.is-active {
+  background: var(--accent-soft);
+}
+
+.picker__word {
+  font-family: var(--font-jp);
+  font-size: 15px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.picker__meaning {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker__tag {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--bg-soft);
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.picker__tag--weak {
+  background: #f2e9e2;
+  color: #9a7b62;
 }
 
 /* ---------- 状态提示 ---------- */
@@ -546,11 +657,16 @@
   flex-direction: column;
 }
 
+/*
+ * 三列固定布局：单词 / 中文释义 / 标签。
+ * 第一列设固定宽度，脱离内容长度影响，
+ * 保证每行中文释义的左边缘落在同一条竖线上。
+ */
 .wordlist__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap);
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
   padding: 13px 0;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -565,19 +681,26 @@
   color: var(--ink);
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
+  /* 假名区固定宽度，保证不同单词的中文释义列起点一致 */
 }
 
 .wordlist__kana {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ink-faint);
   font-family: var(--font-jp);
+  font-weight: 400;
+  flex-shrink: 0;
+  min-width: 52px;
 }
 
 .wordlist__cn {
   font-size: 13px;
   color: var(--ink-soft);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -590,6 +713,7 @@
   background: var(--bg-soft);
   color: var(--ink-soft);
   white-space: nowrap;
+  justify-self: end;
 }
 
 .tag--due {

@@ -1,8 +1,11 @@
 /**
  * 视图 · 单词学习（默认首页）
  * ---------------------------------------------------------------
- * 大字展示单词 → 主动回忆 → 点击/空格揭示 → 认识 / 不认识
- * 「不认识」的单词自动进入错词复习队列，无需手动整理。
+ * 卡片正面只显示日语单词与音调，点击左右翻转到背面看读音与释义。
+ *
+ * 「认识 / 不认识」常驻在卡片下方，不需要先揭示：
+ *   认识   → 直接跳到下一个词
+ *   不认识 → 翻转卡片显示答案，同时该词进入错词复习队列
  */
 (function (global) {
   'use strict';
@@ -11,7 +14,7 @@
   var WordCard = LG.WordCard;
 
   var els = {};
-  var revealed = false;
+  var flipped = false;
   var state = null;
   var onStateChange = null;
 
@@ -38,11 +41,16 @@
     return arr;
   }
 
+  function currentIndex() {
+    var ids = currentOrder();
+    if (!ids.length) return 0;
+    return ((state.study.cursor % ids.length) + ids.length) % ids.length;
+  }
+
   function currentWord() {
     var ids = currentOrder();
     if (!ids.length) return null;
-    var idx = ((state.study.cursor % ids.length) + ids.length) % ids.length;
-    return LG.WORD_BANK.get(ids[idx]);
+    return LG.WORD_BANK.get(ids[currentIndex()]);
   }
 
   function init(root, ctx) {
@@ -55,7 +63,9 @@
       counter: root.querySelector('[data-el="counter"]'),
       prev: root.querySelector('[data-el="prev"]'),
       next: root.querySelector('[data-el="next"]'),
-      shuffle: root.querySelector('[data-el="shuffle"]')
+      shuffle: root.querySelector('[data-el="shuffle"]'),
+      picker: root.querySelector('[data-el="picker"]'),
+      pickerList: root.querySelector('[data-el="picker-list"]')
     };
 
     els.actions.innerHTML =
@@ -77,6 +87,14 @@
     });
     els.shuffle.addEventListener('click', toggleOrder);
 
+    // 词表选择框：点击展开本组全部单词，点条目直接跳转
+    els.picker.addEventListener('click', function (e) {
+      var item = e.target.closest('[data-jump]');
+      if (!item) return;
+      LG.Picker.close();
+      jumpTo(item.getAttribute('data-jump'));
+    });
+
     render();
   }
 
@@ -84,7 +102,17 @@
     var ids = currentOrder();
     var total = ids.length;
     state.study.cursor = (((state.study.cursor + delta) % total) + total) % total;
-    revealed = false;
+    flipped = false;
+    if (onStateChange) onStateChange();
+  }
+
+  /** 从词表选择框跳到指定单词 */
+  function jumpTo(id) {
+    var ids = currentOrder();
+    var idx = ids.indexOf(id);
+    if (idx < 0) return;
+    state.study.cursor = idx;
+    flipped = false;
     if (onStateChange) onStateChange();
   }
 
@@ -96,19 +124,18 @@
       state.study.orderSeed = Math.floor(Math.random() * 100000) + 1;
     }
     state.study.cursor = 0;
-    revealed = false;
+    flipped = false;
     if (onStateChange) onStateChange();
   }
 
-  function reveal() {
-    if (revealed) return;
-    revealed = true;
+  function flip() {
+    flipped = !flipped;
     render();
   }
 
   function submit(known) {
     var word = currentWord();
-    if (!word || !revealed) return;
+    if (!word) return;
 
     // 记录作答：更新熟练度、每日统计
     LG.Srs.answer(state, word.id, known);
@@ -118,26 +145,25 @@
     else day.unknown += 1;
     LG.Store.pruneDays(state);
 
-    // 答错后立即进入本轮复习队列的靠前位置
-    if (!known) {
+    if (known) {
+      // 认识：直接进入下一个词
+      go(1);
+    } else {
+      // 不认识：进入错词队列，并把卡片翻过来展示答案
       state.review.queue = LG.Srs.reinsert(state.review.queue, state.review.cursor, word.id);
+      flipped = true;
+      if (onStateChange) onStateChange();
     }
-
-    revealed = false;
-    go(1);
   }
 
-  /** 键盘：空格揭示，方向键切换，R 发音 */
+  /** 键盘：空格翻转，方向键切换，R 发音 */
   function onKey(e) {
     if (!rootVisible()) return false;
     var key = e.key;
     if (key === ' ' || key === 'Spacebar' || key === 'Enter') {
-      if (!revealed) {
-        e.preventDefault();
-        reveal();
-        return true;
-      }
-      return false;
+      e.preventDefault();
+      flip();
+      return true;
     }
     if (key === 'ArrowRight') {
       go(1);
@@ -159,6 +185,33 @@
     return els.root.classList.contains('is-active');
   }
 
+  /** 渲染词表选择框内容 */
+  function renderPicker(ids, activeId) {
+    if (!els.pickerList) return;
+    var bank = LG.WORD_BANK;
+    var recs = state.words;
+    var html = '';
+    ids.forEach(function (id) {
+      var w = bank.get(id);
+      if (!w) return;
+      var rec = recs[id];
+      var mark = '';
+      if (rec && rec.seen > 0) {
+        mark = rec.box === 0
+          ? '<span class="picker__tag picker__tag--weak">弱</span>'
+          : '<span class="picker__tag">已记</span>';
+      }
+      html +=
+        '<li class="picker__item' + (id === activeId ? ' is-active' : '') + '" data-jump="' +
+        WordCard.escapeHtml(id) + '">' +
+        '<span class="picker__word" lang="ja">' + WordCard.escapeHtml(w.word) + '</span>' +
+        '<span class="picker__meaning">' + WordCard.escapeHtml(w.meaning) + '</span>' +
+        mark +
+        '</li>';
+    });
+    els.pickerList.innerHTML = html;
+  }
+
   function render() {
     var word = currentWord();
     if (!word) {
@@ -169,16 +222,19 @@
 
     els.card.hidden = false;
     WordCard.render(els.card, word, {
-      revealed: revealed,
-      onReveal: reveal,
+      flipped: flipped,
+      onFlip: flip,
       onSpeak: function () {}
     });
 
-    els.actions.hidden = !revealed;
+    // 认识 / 不认识 常驻显示
+    els.actions.hidden = false;
 
     var ids = currentOrder();
-    var idx = ids.indexOf(word.id);
+    var idx = currentIndex();
     els.counter.innerHTML = '<strong>' + (idx + 1) + '</strong> / ' + ids.length;
+
+    renderPicker(ids, word.id);
 
     els.shuffle.classList.toggle('is-on', state.study.order === 'random');
     els.shuffle.setAttribute('aria-pressed', state.study.order === 'random' ? 'true' : 'false');
@@ -191,13 +247,13 @@
     onKey: onKey,
     setState: function (next) {
       state = next;
-      revealed = false;
+      flipped = false;
     },
-    isRevealed: function () {
-      return revealed;
+    isFlipped: function () {
+      return flipped;
     },
     reset: function () {
-      revealed = false;
+      flipped = false;
     }
   };
 })(window);

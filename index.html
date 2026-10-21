@@ -44,7 +44,7 @@
       <!-- A. 单词学习 -->
       <section class="view view--cards is-active" id="view-study" role="tabpanel" aria-labelledby="tab-study">
         <div class="card" data-el="card"></div>
-        <div class="actions" data-el="actions" hidden></div>
+        <div class="actions" data-el="actions"></div>
         <div class="navbar">
           <div class="navbar__side">
             <button type="button" class="navbtn" data-el="prev" aria-label="上一个单词">
@@ -55,8 +55,14 @@
               下一词
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
             </button>
+            <div class="picker" data-el="picker">
+              <button type="button" class="picker__toggle" aria-label="选择单词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M16 15l-4 4-4-4"/></svg>
+                <span data-el="counter" class="navbar__counter"></span>
+              </button>
+              <ul class="picker__list" data-el="picker-list"></ul>
+            </div>
           </div>
-          <span data-el="counter" class="navbar__counter"></span>
           <div class="navbar__side">
             <button type="button" class="navbtn navbtn--icon" data-el="shuffle" aria-pressed="false" aria-label="切换随机顺序" title="切换随机顺序">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
@@ -64,22 +70,30 @@
           </div>
         </div>
         <p class="footnote">
-          <kbd>空格</kbd> 查看释义 · <kbd>←</kbd><kbd>→</kbd> 切换 · <kbd>R</kbd> 发音
+          <kbd>空格</kbd> 翻转卡片 · <kbd>←</kbd><kbd>→</kbd> 切换 · <kbd>R</kbd> 发音
         </p>
       </section>
 
       <!-- B. 速成复习 -->
       <section class="view view--cards" id="view-review" role="tabpanel" aria-labelledby="tab-review">
-        <div class="navbar" style="margin-top:0;margin-bottom:12px">
-          <span data-el="status"></span>
-          <button type="button" class="navbtn" data-el="restart">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-            重新开始
-          </button>
-        </div>
         <div data-el="state" hidden></div>
         <div class="card" data-el="card"></div>
-        <div class="actions" data-el="actions" hidden></div>
+        <div class="actions" data-el="actions"></div>
+        <div class="navbar">
+          <div class="picker" data-el="picker">
+            <button type="button" class="picker__toggle" aria-label="选择待复习单词">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M16 15l-4 4-4-4"/></svg>
+              <span data-el="status"></span>
+            </button>
+            <ul class="picker__list" data-el="picker-list"></ul>
+          </div>
+          <div class="navbar__side">
+            <button type="button" class="navbtn" data-el="restart">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              重新开始
+            </button>
+          </div>
+        </div>
         <p class="footnote">
           答对的词复习间隔会自动拉长，答错的词本轮内会再考一次。
         </p>
@@ -99,6 +113,7 @@
   <script src="assets/js/core/stats.js"></script>
   <script src="assets/js/core/speech.js"></script>
   <script src="assets/js/ui/card.js"></script>
+  <script src="assets/js/ui/picker.js"></script>
   <script src="assets/js/views/study.js"></script>
   <script src="assets/js/views/review.js"></script>
   <script src="assets/js/views/progress.js"></script>
