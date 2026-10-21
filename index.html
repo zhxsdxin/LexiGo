@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/css/layout.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/helpmenu.css">
+  <link rel="stylesheet" href="assets/css/deckmenu.css">
 </head>
 <body>
   <div class="app">
@@ -17,7 +18,7 @@
     <header class="topbar">
       <div class="topbar__brand">
         <span class="topbar__name">LexiGo</span>
-        <span class="topbar__deck" data-deck-name>默认词库</span>
+        <span class="topbar__deck" data-deck-name>词库</span>
       </div>
       <div class="topbar__meta">
         <span class="topbar__meta" data-el="top-due" hidden></span>
@@ -45,6 +46,7 @@
     <main class="main">
       <!-- A. 单词学习 -->
       <section class="view view--cards is-active" id="view-study" role="tabpanel" aria-labelledby="tab-study">
+        <div data-el="empty" hidden></div>
         <div class="card" data-el="card"></div>
         <div class="actions" data-el="actions"></div>
         <div class="navbar">
@@ -76,6 +78,7 @@
       <!-- B. 速成复习 -->
       <section class="view view--cards" id="view-review" role="tabpanel" aria-labelledby="tab-review">
         <div data-el="state" hidden></div>
+        <div data-el="empty" hidden></div>
         <div class="card" data-el="card"></div>
         <div class="actions" data-el="actions"></div>
         <div class="navbar">
@@ -102,7 +105,9 @@
     </main>
   </div>
 
-  <script src="assets/js/data/wordbank.js"></script>
+  <script src="assets/js/data/banks.js"></script>
+  <script src="assets/js/data/sample-words.js"></script>
+  <script src="assets/js/data/n3-words.js"></script>
   <script src="assets/js/core/store.js"></script>
   <script src="assets/js/core/srs.js"></script>
   <script src="assets/js/core/stats.js"></script>
@@ -111,6 +116,7 @@
   <script src="assets/js/ui/picker.js"></script>
   <script src="assets/js/ui/gesture.js"></script>
   <script src="assets/js/ui/helpmenu.js"></script>
+  <script src="assets/js/ui/deckmenu.js"></script>
   <script src="assets/js/views/study.js"></script>
   <script src="assets/js/views/review.js"></script>
   <script src="assets/js/views/progress.js"></script>

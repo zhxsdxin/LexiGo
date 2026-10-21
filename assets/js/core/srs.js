@@ -97,11 +97,11 @@
    * @param {boolean} forceRestart true = 手动重开一轮，把所有未掌握的词全部拉进来
    */
   function buildQueue(state, forceRestart) {
-    var bank = global.LexiGo.WORD_BANK;
+    var words = global.LexiGo.Banks.activeWords();
     var now = Date.now();
     var list = [];
 
-    bank.words.forEach(function (w) {
+    words.forEach(function (w) {
       var rec = state.words[w.id];
       if (!rec || rec.seen === 0) return;
       if (rec.box >= MAX_BOX) {

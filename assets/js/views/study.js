@@ -18,10 +18,23 @@
   var state = null;
   var onStateChange = null;
 
+  /** 当前生效的词库与单词列表（受子集勾选影响） */
+  function activeWords() {
+    var deck = LG.DeckMenu;
+    var bank = deck.currentBank();
+    if (!bank) return { bank: null, words: [] };
+    var ids = deck.activeIds(bank.id);
+    var out = [];
+    bank.words.forEach(function (w) {
+      if (ids === null || ids.indexOf(w.id) >= 0) out.push(w);
+    });
+    return { bank: bank, words: out };
+  }
+
   /** 当前词序：sequential（词库顺序）或 random（随机） */
   function currentOrder() {
-    var bank = LG.WORD_BANK;
-    var ids = bank.orderedIds();
+    var words = activeWords().words;
+    var ids = words.map(function (w) { return w.id; });
     if (state.study.order === 'random') {
       ids = seededShuffle(ids, state.study.orderSeed);
     }
@@ -50,7 +63,7 @@
   function currentWord() {
     var ids = currentOrder();
     if (!ids.length) return null;
-    return LG.WORD_BANK.get(ids[currentIndex()]);
+    return LG.Banks.getWord(ids[currentIndex()]);
   }
 
   function init(root, ctx) {
@@ -65,7 +78,8 @@
       next: root.querySelector('[data-el="next"]'),
       shuffle: root.querySelector('[data-el="shuffle"]'),
       picker: root.querySelector('[data-el="picker"]'),
-      pickerList: root.querySelector('[data-el="picker-list"]')
+      pickerList: root.querySelector('[data-el="picker-list"]'),
+      empty: root.querySelector('[data-el="empty"]')
     };
 
     els.actions.innerHTML =
@@ -188,11 +202,10 @@
   /** 渲染词表选择框内容 */
   function renderPicker(ids, activeId) {
     if (!els.pickerList) return;
-    var bank = LG.WORD_BANK;
     var recs = state.words;
     var html = '';
     ids.forEach(function (id) {
-      var w = bank.get(id);
+      var w = LG.Banks.getWord(id);
       if (!w) return;
       var rec = recs[id];
       var mark = '';
@@ -212,13 +225,41 @@
     els.pickerList.innerHTML = html;
   }
 
+  /** 一个词都没选中时的提示，引导去选子集 */
+  function renderEmpty() {
+    var scope = activeWords();
+    var bank = scope.bank;
+    els.empty.hidden = false;
+    els.empty.innerHTML =
+      '<div class="state">' +
+      '<div class="state__mark">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2 2 2 0 0 1 2-2h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M12 6v16"/>' +
+      '</svg></div>' +
+      '<h2 class="state__title">当前范围没有单词</h2>' +
+      '<p class="state__desc">' +
+      (bank ? '「' + bank.name + '」里还没有勾选任何子集，选一个就能开始。' : '请先选择一个词库。') +
+      '</p>' +
+      '<button type="button" class="btn btn--primary btn--block" data-act="pickset">选择子集</button>' +
+      '</div>';
+
+    var btn = els.empty.querySelector('[data-act="pickset"]');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        LG.DeckMenu.open();
+      });
+    }
+  }
+
   function render() {
     var word = currentWord();
     if (!word) {
       els.card.hidden = true;
       els.actions.hidden = true;
+      renderEmpty();
       return;
     }
+    els.empty.hidden = true;
 
     els.card.hidden = false;
     WordCard.render(els.card, word, {
@@ -249,6 +290,7 @@
       state = next;
       flipped = false;
     },
+    activeWords: activeWords,
     /** 供手势调用：正数下一词，负数上一词 */
     step: function (delta) {
       go(delta);

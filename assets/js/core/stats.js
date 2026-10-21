@@ -26,9 +26,9 @@
 
   /** 词库中已被学习过的单词数 */
   function touchedCount(state) {
-    var bank = global.LexiGo.WORD_BANK;
+    var words = global.LexiGo.Banks.activeWords();
     var n = 0;
-    bank.words.forEach(function (w) {
+    words.forEach(function (w) {
       var rec = state.words[w.id];
       if (rec && rec.seen > 0) n += 1;
     });
@@ -36,7 +36,8 @@
   }
 
   function deckProgress(state) {
-    var total = global.LexiGo.WORD_BANK.total;
+    var words = global.LexiGo.Banks.activeWords();
+    var total = words.length;
     var done = touchedCount(state);
     return {
       done: done,
@@ -54,7 +55,7 @@
   function learningCount(state) {
     var srs = global.LexiGo.Srs;
     var n = 0;
-    global.LexiGo.WORD_BANK.words.forEach(function (w) {
+    global.LexiGo.Banks.activeWords().forEach(function (w) {
       if (srs.isLearning(state, w.id)) n += 1;
     });
     return n;
@@ -63,7 +64,7 @@
   function masteredCount(state) {
     var maxBox = global.LexiGo.Srs.MAX_BOX;
     var n = 0;
-    global.LexiGo.WORD_BANK.words.forEach(function (w) {
+    global.LexiGo.Banks.activeWords().forEach(function (w) {
       var rec = state.words[w.id];
       if (rec && rec.box >= maxBox) n += 1;
     });

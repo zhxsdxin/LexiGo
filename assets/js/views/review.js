@@ -57,7 +57,7 @@
     var q = state.review.queue;
     if (!q.length) return null;
     var idx = Math.min(state.review.cursor, q.length - 1);
-    return LG.WORD_BANK.get(q[idx]);
+    return LG.Banks.getWord(q[idx]);
   }
 
   function init(root, ctx) {
@@ -263,10 +263,10 @@
   /** 渲染复习队列选择框 */
   function renderPicker(queue, activeId) {
     if (!els.pickerList) return;
-    var bank = LG.WORD_BANK;
+    var bank = LG.Banks;
     var html = '';
     queue.forEach(function (id) {
-      var w = bank.get(id);
+      var w = LG.Banks.getWord(id);
       if (!w) return;
       var rec = state.words[id];
       var box = rec ? rec.box : 0;

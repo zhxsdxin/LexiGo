@@ -101,6 +101,7 @@
       due.textContent = dueCount > 0 ? dueCount + ' 待复习' : '';
       due.hidden = dueCount === 0;
     }
+    renderDeckName();
   }
 
   function renderBadges() {
@@ -132,6 +133,44 @@
     if (slot && LG.HelpMenu) LG.HelpMenu.mount(slot);
   }
 
+  /** 注册内置词库 */
+  function registerBanks() {
+    if (LG.SAMPLE_BANK) LG.Banks.register(LG.SAMPLE_BANK);
+    if (LG.N3_BANK) LG.Banks.register(LG.N3_BANK);
+  }
+
+  /** 顶栏挂词库选择入口。切换后重建词序，避免越界 */
+  function mountDeckMenu() {
+    var slot = document.querySelector('.topbar__tools');
+    if (!slot || !LG.DeckMenu) return;
+    LG.DeckMenu.mount(slot, {
+      onApply: function () {
+        state.study.cursor = 0;
+        // 换范围后复习队列不再适用，重置一轮
+        state.review.queue = [];
+        state.review.cursor = 0;
+        state.review.roundStartedAt = 0;
+        if (LG.ReviewView) LG.ReviewView.rebuild();
+        render();
+      }
+    });
+  }
+
+  /** 顶栏词库名随选择更新 */
+  function renderDeckName() {
+    var el = document.querySelector('[data-deck-name]');
+    if (!el) return;
+    var bank = LG.DeckMenu ? LG.DeckMenu.currentBank() : null;
+    if (!bank) return;
+    var sel = LG.DeckMenu.loadSelection();
+    var names = [];
+    (sel.subsets || []).forEach(function (id) {
+      var def = LG.Banks.getSubset(id);
+      if (def) names.push(def.name);
+    });
+    el.textContent = names.length ? bank.name + ' · ' + names.join('/') : bank.name;
+  }
+
   /** 学习 / 复习页的卡片支持左右滑动切词、上下滑动翻面 */
   function bindGestures() {
     ['study', 'review'].forEach(function (id) {
@@ -149,6 +188,11 @@
           else views.review.prev();
         },
         onUp: function () {
+          if (currentTab !== id) return;
+          if (id === 'study') views.study.flip();
+          else views.review.flip();
+        },
+        onDown: function () {
           if (currentTab !== id) return;
           if (id === 'study') views.study.flip();
           else views.review.flip();
@@ -190,9 +234,11 @@
   function init() {
     load();
 
+    registerBanks();
     bindTabs();
     LG.Picker.bindAll();
     mountHelp();
+    mountDeckMenu();
 
     views.study = LG.StudyView;
     views.review = LG.ReviewView;

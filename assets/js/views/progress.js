@@ -139,7 +139,7 @@
     var now = Date.now();
     var list = [];
 
-    LG.WORD_BANK.words.forEach(function (w) {
+    LG.Banks.activeWords().forEach(function (w) {
       var rec = st.words[w.id];
       if (!rec || rec.seen === 0) return;
       if (rec.box >= srs.MAX_BOX) return;
@@ -165,9 +165,9 @@
   /** 掌握程度分布：5 个等级的轻量柱状图 */
   function levelsHtml(st) {
     var counts = [0, 0, 0, 0, 0];
-    var total = LG.WORD_BANK.total;
+    var total = LG.Banks.activeWords().length;
 
-    LG.WORD_BANK.words.forEach(function (w) {
+    LG.Banks.activeWords().forEach(function (w) {
       var rec = st.words[w.id];
       if (!rec || rec.seen === 0) return;
       counts[Math.min(rec.box, 4)] += 1;

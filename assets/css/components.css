@@ -3,13 +3,13 @@
    =========================================================== */
 
 /* ---------- 单词卡 ---------- */
-/* 卡片吃掉纵向剩余空间，让单词始终处在视口视觉中心 */
+/*
+ * .card 只做 3D 舞台：提供 perspective，不画卡面。
+ * 卡面（白底、描边、阴影、圆角）画在 .card__face 上，跟着一起翻转。
+ * 若画在这里，卡板会原地不动，内容转走后只剩一张空白卡面，
+ * 90° 附近看起来像闪了一下。
+ */
 .card {
-  background: var(--card);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-card);
-  padding: 30px 26px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,14 +19,9 @@
   max-height: 460px;
   position: relative;
   cursor: pointer;
-  transition: box-shadow var(--t-base) var(--ease);
   flex: 1 1 auto;
-  /* 3D 纵深：数值越小翻转时的透视变形越明显 */
-  perspective: 1400px;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lift);
+  /* 3D 纵深：1000px，透视变形柔和，适合长时间观看 */
+  perspective: 1000px;
 }
 
 /*
@@ -43,7 +38,8 @@
   width: 100%;
   flex: 1;
   transform-style: preserve-3d;
-  transition: transform 260ms cubic-bezier(0.45, 0.05, 0.25, 1);
+  -webkit-transform-style: preserve-3d;
+  transition: transform 350ms ease-in-out;
 }
 
 .card.is-flipped .card__inner {
@@ -51,9 +47,22 @@
 }
 
 /*
+ * 切词回正：换词时先把卡片瞬间摆回正面并换内容，不做回正动画，
+ * 避免旋转途中露出新词的释义。
+ */
+.card.is-resetting .card__inner {
+  transition: none;
+}
+
+/*
  * 正反两面。
  * 两面都绝对定位铺满容器，背面预先旋转 180°，
  * 翻过去时正好正对用户；backface-visibility 保证同一时刻只可见一面。
+ *
+ * 卡面外观（白底、描边、阴影）画在这里，随卡片一起转：
+ * 两面各自画一份，阴影落在各自的背面，翻过去时投影方向才正确。
+ *
+ * 底部留出 64px 给发音按钮（按钮绝对定位在卡面下方）。
  */
 .card__face {
   position: absolute;
@@ -63,12 +72,19 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 30px 26px 76px;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  /* 背面加一点压暗，翻转的立体感更明确 */
-  background: var(--card);
-  border-radius: var(--r-lg);
+  /* 内容不越过圆角，例句较长时也不会溢出到卡片外 */
+  overflow: hidden;
+}
+
+.card:hover .card__face {
+  box-shadow: var(--shadow-lift);
 }
 
 .card__face--back {
@@ -76,8 +92,20 @@
 }
 
 /*
+ * 发音按钮：绝对定位在所属卡面的底部。
+ * 按钮属于卡面，卡面翻转时它跟着一起翻。
+ */
+.card__speak {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+/*
  * 切换单词时的淡入：作用在正反两面内部的包装层上。
- * 用 will-change 让浏览器单独合成，但动画结束后立即释放，避免残留。
+ * 只在换词时通过 .is-entering 触发一次，翻面过程中不重放，
+ * 免得翻到一半文字还在位移。
  */
 .card__face > .card__body {
   display: flex;
@@ -85,6 +113,12 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  /* 内容层同样裁掉背面，杜绝正反两面文字同时可见 */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card__face > .card__body.is-entering {
   animation: cardIn var(--t-slow) var(--ease);
 }
 
@@ -193,7 +227,7 @@
   line-height: 1.6;
 }
 
-/* 发音按钮 */
+/* 发音按钮（定位见上方的 .card__speak 绝对定位规则） */
 .card__speak {
   display: inline-flex;
   align-items: center;
@@ -201,7 +235,6 @@
   gap: 7px;
   min-height: 44px;
   padding: 0 18px;
-  margin-top: 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-full);
   background: var(--card);
@@ -746,8 +779,12 @@
 /* ---------- 移动端 ---------- */
 @media (max-width: 420px) {
   .card {
-    padding: 28px 20px 22px;
     min-height: 300px;
+  }
+
+  /* 内边距画在卡面上，随卡片一起翻转 */
+  .card__face {
+    padding: 28px 20px 70px;
   }
 
   .card__meaning {
@@ -771,7 +808,10 @@
 @media (max-height: 620px) and (max-width: 900px) {
   .card {
     min-height: 240px;
-    padding: 22px 20px 20px;
+  }
+
+  .card__face {
+    padding: 22px 20px 68px;
   }
 
   .card__word {
