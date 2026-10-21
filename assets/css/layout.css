@@ -1,0 +1,220 @@
+/* ===========================================================
+   LexiGo · 页面骨架
+   顶部信息条 + 内容区 + 底部标签栏，移动端优先考虑单手操作
+   =========================================================== */
+
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 max(var(--gap), env(safe-area-inset-left)) env(safe-area-inset-bottom);
+}
+
+/* ---------- 顶部 ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: calc(env(safe-area-inset-top) + 18px) 0 14px;
+  flex-shrink: 0;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topbar__name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.topbar__deck {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.topbar__meta strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* 顶部整体进度：极细，1px */
+.topprogress {
+  position: relative;
+  width: 68px;
+  height: 3px;
+  background: var(--bg-soft);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.topprogress__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  border-radius: var(--r-full);
+  transition: width var(--t-slow) var(--ease);
+}
+
+/* ---------- 标签栏 ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  background: var(--bg-soft);
+  border-radius: var(--r-full);
+  margin-bottom: var(--gap-lg);
+  flex-shrink: 0;
+}
+
+.tabs__btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tabs__btn[aria-selected='true'] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(41, 42, 40, 0.06);
+}
+
+.tabs__btn:hover:not([aria-selected='true']) {
+  color: var(--ink);
+}
+
+.tabs__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs__badge[hidden] {
+  display: none;
+}
+
+/* ---------- 主内容 ---------- */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  animation: viewIn var(--t-base) var(--ease);
+}
+
+.view.is-active {
+  display: flex;
+}
+
+/* 学习页与复习页：卡片占据剩余可视空间，导航与提示固定在下方 */
+.view--cards {
+  gap: 0;
+}
+
+.view--cards > .card {
+  flex: 1 1 auto;
+}
+
+.view--cards > [data-el="state"] {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.view--cards > [data-el="state"][hidden] {
+  display: none !important;
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.footnote {
+  margin-top: auto;
+  padding: var(--gap-lg) 0 var(--gap);
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.8;
+}
+
+.footnote kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 5px;
+  margin: 0 2px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* ---------- 桌面端 ---------- */
+@media (min-width: 768px) {
+  .app {
+    max-width: 680px;
+    padding-top: 0;
+  }
+
+  .topbar {
+    padding-top: 40px;
+  }
+}

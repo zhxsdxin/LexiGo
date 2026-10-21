@@ -1,0 +1,638 @@
+/* ===========================================================
+   LexiGo · 组件
+   =========================================================== */
+
+/* ---------- 单词卡 ---------- */
+/* 卡片吃掉纵向剩余空间，让单词始终处在视口视觉中心 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  padding: 34px 26px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 300px;
+  max-height: 460px;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+  flex: 1 1 auto;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+.card.is-revealed {
+  cursor: default;
+}
+
+.card__stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* 词卡切换：轻微淡入，不翻转不弹跳 */
+.card__stage > * {
+  animation: cardIn var(--t-slow) var(--ease);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 主单词：页面视觉中心 */
+.card__word {
+  font-family: var(--font-jp);
+  font-size: clamp(48px, 15vw, 76px);
+  font-weight: 500;
+  line-height: 1.18;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  margin: 0;
+  word-break: keep-all;
+}
+
+/* 未揭示时的轻提示 */
+.card__hint {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  animation: hintPulse 2.6s var(--ease) infinite;
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 揭示区域 */
+.card__answer {
+  margin-top: 20px;
+  animation: answerIn var(--t-base) var(--ease);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+@keyframes answerIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.card__kana {
+  font-family: var(--font-jp);
+  font-size: 21px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.card__divider {
+  width: 28px;
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
+
+.card__meaning {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.card__pos {
+  display: inline-block;
+  padding: 2px 9px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* 例句：词库中存在时才显示 */
+.card__example {
+  margin-top: 6px;
+  padding: 13px 15px;
+  background: var(--bg);
+  border-radius: var(--r-md);
+  max-width: 340px;
+  text-align: left;
+}
+
+.card__example-jp {
+  font-family: var(--font-jp);
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.card__example-cn {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin: 5px 0 0;
+  line-height: 1.6;
+}
+
+/* 发音按钮 */
+.card__speak {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 18px;
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 13px;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.card__speak:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.card__speak:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.card__speak svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.card__speak.is-speaking svg {
+  animation: speakPulse 900ms var(--ease) infinite;
+}
+
+@keyframes speakPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ---------- 作答按钮 ---------- */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: var(--gap);
+}
+
+.actions[hidden] {
+  display: none;
+}
+
+.btn {
+  min-height: 50px;
+  border-radius: var(--r-md);
+  font-size: 14.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn--ghost {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+}
+
+.btn--ghost:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+}
+
+.btn--primary:hover {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* ---------- 词序导航 ---------- */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-top: var(--gap);
+  flex-shrink: 0;
+}
+
+.navbar__side {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.navbtn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.navbtn:hover:not(:disabled) {
+  background: var(--bg-soft);
+  color: var(--ink);
+}
+
+.navbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.navbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.navbtn--icon {
+  padding: 0;
+  width: 44px;
+}
+
+.navbtn--icon.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.navbar__counter {
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.navbar__counter strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- 状态提示 ---------- */
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  animation: answerIn var(--t-base) var(--ease);
+}
+
+.state__mark {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--gap);
+}
+
+.state__mark svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-deep);
+}
+
+.state__title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.state__desc {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin: 0 0 22px;
+  line-height: 1.75;
+  max-width: 300px;
+}
+
+/* ---------- 进度页 ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.stat {
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+}
+
+.stat__label {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin: 0 0 10px;
+  letter-spacing: 0.02em;
+}
+
+.stat__value {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.stat__value small {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-left: 3px;
+}
+
+.stat__sub {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* 认识 / 不认识 分布 */
+.split {
+  display: flex;
+  height: 6px;
+  border-radius: var(--r-full);
+  overflow: hidden;
+  background: var(--bg-soft);
+  margin-top: 14px;
+}
+
+.split__known {
+  background: var(--accent);
+  transition: width var(--t-slow) var(--ease);
+}
+
+.split__unknown {
+  background: #cfc9bd;
+  transition: width var(--t-slow) var(--ease);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 11px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend__dot--known {
+  background: var(--accent);
+}
+
+.legend__dot--unknown {
+  background: #cfc9bd;
+}
+
+.legend__num {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 词库掌握分布 */
+.levels {
+  display: flex;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.level {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.level__bar {
+  width: 100%;
+  height: 40px;
+  background: var(--bg-soft);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.level__fill {
+  width: 100%;
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  transition: height var(--t-slow) var(--ease);
+  min-height: 3px;
+}
+
+.level__fill.is-active {
+  background: var(--accent);
+}
+
+.level__num {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.level__name {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* 错词列表 */
+.wordlist {
+  display: flex;
+  flex-direction: column;
+}
+
+.wordlist__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.wordlist__item:last-child {
+  border-bottom: none;
+}
+
+.wordlist__jp {
+  font-family: var(--font-jp);
+  font-size: 16px;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+
+.wordlist__kana {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  font-family: var(--font-jp);
+}
+
+.wordlist__cn {
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg-soft);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.tag--due {
+  background: #f2e9e2;
+  color: #9a7b62;
+}
+
+/* ---------- 移动端 ---------- */
+@media (max-width: 420px) {
+  .card {
+    padding: 28px 20px 22px;
+    min-height: 300px;
+  }
+
+  .card__meaning {
+    font-size: 21px;
+  }
+
+  .stat {
+    padding: 17px 18px;
+  }
+
+  .stat__value {
+    font-size: 30px;
+  }
+
+  .level__name {
+    display: none;
+  }
+}
+
+/* 矮屏（横屏手机）：压缩卡片高度，保证按钮在首屏内 */
+@media (max-height: 620px) and (max-width: 900px) {
+  .card {
+    min-height: 240px;
+    padding: 22px 20px 20px;
+  }
+
+  .card__word {
+    font-size: clamp(38px, 11vw, 52px);
+  }
+
+  .card__hint {
+    margin-top: 12px;
+  }
+}

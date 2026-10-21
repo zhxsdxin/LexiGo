@@ -1,0 +1,144 @@
+/* ===========================================================
+   LexiGo · 设计变量与基础样式
+   安静、精致的日系极简：暖白底、纯白卡片、低饱和鼠尾草绿
+   =========================================================== */
+
+:root {
+  /* 配色 */
+  --bg: #f7f6f2;
+  --bg-soft: #f1efe9;
+  --card: #ffffff;
+  --ink: #292a28;
+  --ink-soft: #6f726b;
+  --ink-faint: #a4a79f;
+  --accent: #7c927e;
+  --accent-soft: #e8ede6;
+  --accent-deep: #64795f;
+  --line: #e6e3dc;
+  --line-soft: #eeece5;
+
+  /* 圆角 */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-full: 999px;
+
+  /* 阴影：柔和，不厚重 */
+  --shadow-card: 0 1px 2px rgba(41, 42, 40, 0.04), 0 8px 24px -12px rgba(41, 42, 40, 0.12);
+  --shadow-lift: 0 2px 4px rgba(41, 42, 40, 0.05), 0 16px 40px -16px rgba(41, 42, 40, 0.18);
+
+  /* 动效：120-200ms */
+  --t-fast: 130ms;
+  --t-base: 170ms;
+  --t-slow: 200ms;
+  --ease: cubic-bezier(0.32, 0.72, 0.35, 1);
+
+  /* 间距 */
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap: 16px;
+  --gap-lg: 24px;
+  --gap-xl: 40px;
+
+  /* 排版 */
+  --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic",
+    "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Helvetica Neue", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/*
+ * hidden 属性兜底。
+ * 卡片、按钮等组件带有 display:flex，特异性高于 UA 的 [hidden] 规则，
+ * 会让 hidden 失效（元素内容为空但边框阴影仍在显示）。
+ */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 尊重系统「减少动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 通用工具 */
+.u-hidden {
+  display: none !important;
+}
+
+.u-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 细进度条 */
+.bar {
+  height: 3px;
+  background: var(--bg-soft);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.bar__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-full);
+  transition: width var(--t-slow) var(--ease);
+}
