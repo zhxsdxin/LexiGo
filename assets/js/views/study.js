@@ -249,6 +249,12 @@
       state = next;
       flipped = false;
     },
+    /** 供手势调用：正数下一词，负数上一词 */
+    step: function (delta) {
+      go(delta);
+    },
+    /** 供手势调用：翻转卡片 */
+    flip: flip,
     isFlipped: function () {
       return flipped;
     },

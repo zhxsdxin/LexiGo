@@ -126,7 +126,38 @@
     });
   }
 
-  /** 切标签时收起展开中的词表 */
+  /** 顶栏右侧挂操作说明入口 */
+  function mountHelp() {
+    var slot = document.querySelector('.topbar__tools');
+    if (slot && LG.HelpMenu) LG.HelpMenu.mount(slot);
+  }
+
+  /** 学习 / 复习页的卡片支持左右滑动切词、上下滑动翻面 */
+  function bindGestures() {
+    ['study', 'review'].forEach(function (id) {
+      var view = document.getElementById('view-' + id);
+      if (!view) return;
+      LG.Gesture.attach(view, {
+        onLeft: function () {
+          if (currentTab !== id) return;
+          if (id === 'study') views.study.step(1);
+          else views.review.next();
+        },
+        onRight: function () {
+          if (currentTab !== id) return;
+          if (id === 'study') views.study.step(-1);
+          else views.review.prev();
+        },
+        onUp: function () {
+          if (currentTab !== id) return;
+          if (id === 'study') views.study.flip();
+          else views.review.flip();
+        }
+      });
+    });
+  }
+
+  /** 切标签时收起展开中的浮层 */
   function closePickers() {
     if (LG.Picker) LG.Picker.close();
   }
@@ -147,6 +178,9 @@
         if (e.key === '1') { switchTab('study'); handled = true; }
         else if (e.key === '2') { switchTab('review'); handled = true; }
         else if (e.key === '3') { switchTab('progress'); handled = true; }
+        else if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+          if (LG.HelpMenu) { LG.HelpMenu.toggle(); handled = true; }
+        }
       }
 
       if (handled) e.preventDefault();
@@ -158,6 +192,7 @@
 
     bindTabs();
     LG.Picker.bindAll();
+    mountHelp();
 
     views.study = LG.StudyView;
     views.review = LG.ReviewView;
@@ -168,6 +203,7 @@
     views.progress.init(document.getElementById('view-progress'), ctx());
 
     bindKeys();
+    bindGestures();
 
     // 跨天时刷新一次统计口径
     var lastDay = LG.Store.todayKey();

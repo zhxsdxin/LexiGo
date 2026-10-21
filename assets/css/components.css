@@ -21,29 +21,40 @@
   cursor: pointer;
   transition: box-shadow var(--t-base) var(--ease);
   flex: 1 1 auto;
+  /* 3D 纵深：数值越小翻转时的透视变形越明显 */
+  perspective: 1400px;
 }
 
 .card:hover {
   box-shadow: var(--shadow-lift);
 }
 
-/* 翻转容器：perspective 提供 3D 纵深，rotateY 实现左右翻转 */
+/*
+ * 翻转容器：perspective 提供 3D 纵深，rotateY(180deg) 完成整张卡翻转。
+ *
+ * 残影成因与规避：早先把入场动画加在 .card__face 的子元素上，
+ * 动画会给子元素建立独立合成层，而合成层不参与父级的 backface 裁剪，
+ * 导致翻到一半时背面的文字与正面文字同时可见。
+ * 因此动画统一放在 .card__inner 内、且只作用于不参与 3D 的包装层，
+ * 正反两面的文字本身保持静止，由 backface-visibility 负责互斥显示。
+ */
 .card__inner {
   position: relative;
   width: 100%;
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transform-style: preserve-3d;
-  transition: transform var(--t-slow) var(--ease);
+  transition: transform 260ms cubic-bezier(0.45, 0.05, 0.25, 1);
 }
 
 .card.is-flipped .card__inner {
   transform: rotateY(180deg);
 }
 
-/* 正反两面。背面预旋转 180°，翻过去时才正对用户 */
+/*
+ * 正反两面。
+ * 两面都绝对定位铺满容器，背面预先旋转 180°，
+ * 翻过去时正好正对用户；backface-visibility 保证同一时刻只可见一面。
+ */
 .card__face {
   position: absolute;
   inset: 0;
@@ -55,14 +66,25 @@
   padding: 8px 0;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  /* 背面加一点压暗，翻转的立体感更明确 */
+  background: var(--card);
+  border-radius: var(--r-lg);
 }
 
 .card__face--back {
   transform: rotateY(180deg);
 }
 
-/* 切换单词时内容轻微淡入 */
-.card__face > * {
+/*
+ * 切换单词时的淡入：作用在正反两面内部的包装层上。
+ * 用 will-change 让浏览器单独合成，但动画结束后立即释放，避免残留。
+ */
+.card__face > .card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   animation: cardIn var(--t-slow) var(--ease);
 }
 

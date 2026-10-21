@@ -155,9 +155,21 @@
   display: flex;
 }
 
-/* 学习页与复习页：卡片占据剩余可视空间，导航与提示固定在下方 */
+/*
+ * 卡片区域允许滑动手势：拖动时不要选中文字、不要触发浏览器的图片拖拽。
+ * touch-action 用 pan-y 保留纵向页面滚动，左右方向交给我们自己的手势处理。
+ */
 .view--cards {
   gap: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.view--cards .card,
+.view--cards .actions {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .view--cards > .card {
@@ -182,29 +194,6 @@
     opacity: 1;
     transform: none;
   }
-}
-
-.footnote {
-  margin-top: auto;
-  padding: var(--gap-lg) 0 var(--gap);
-  text-align: center;
-  font-size: 12px;
-  color: var(--ink-faint);
-  line-height: 1.8;
-}
-
-.footnote kbd {
-  display: inline-block;
-  min-width: 20px;
-  padding: 1px 5px;
-  margin: 0 2px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--ink-soft);
-  line-height: 1.5;
 }
 
 /* ---------- 桌面端 ---------- */

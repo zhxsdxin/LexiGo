@@ -67,11 +67,14 @@
       '<div class="card__inner">' +
       // 正面：单词 + 音调
       '<div class="card__face card__face--front">' +
+      '<div class="card__body">' +
       '<h2 class="card__word" lang="ja">' + escapeHtml(word.word) + '</h2>' +
       pitchFront +
       '</div>' +
+      '</div>' +
       // 背面：假名 + 词性 + 释义
       '<div class="card__face card__face--back">' +
+      '<div class="card__body">' +
       '<div class="card__kana-row">' +
       '<p class="card__kana" lang="ja">' + escapeHtml(word.kana) + '</p>' +
       pitchBack +
@@ -80,6 +83,7 @@
       '<p class="card__meaning">' + escapeHtml(word.meaning) + '</p>' +
       (posLabel ? '<span class="card__pos">' + escapeHtml(posLabel) + '</span>' : '') +
       exampleHtml +
+      '</div>' +
       '</div>' +
       '</div>' +
       '<button type="button" class="card__speak" data-act="speak"' +

@@ -107,10 +107,20 @@
     render();
   }
 
+  /** 双向翻转：背面已显示时再点会翻回正面 */
   function flip() {
-    if (flipped) return;
-    flipped = true;
+    flipped = !flipped;
     render();
+  }
+
+  /** 在本轮队列内前后移动 */
+  function step(delta) {
+    var total = state.review.queue.length;
+    if (!total) return;
+    state.review.cursor =
+      (((state.review.cursor + delta) % total) + total) % total;
+    flipped = false;
+    if (onStateChange) onStateChange();
   }
 
   function submit(known) {
@@ -234,10 +244,7 @@
 
     WordCard.render(els.card, word, {
       flipped: flipped,
-      onFlip: function () {
-        flipped = !flipped;
-        render();
-      },
+      onFlip: flip,
       onSpeak: function () {}
     });
 
@@ -288,6 +295,14 @@
     },
     isFlipped: function () {
       return flipped;
+    },
+    /** 供手势调用 */
+    flip: flip,
+    next: function () {
+      step(1);
+    },
+    prev: function () {
+      step(-1);
     },
     reset: function () {
       flipped = false;
