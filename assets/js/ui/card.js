@@ -231,8 +231,11 @@
   function fillContent(refs, word, bank) {
     var S = global.LexiGo.Settings;
     var kanaMode = S ? S.get('kanaMode') : false;
-    // 预生成复制文本，供正反两面的复制按钮直接取用
-    refs.copyText = buildCopyText(word, bank);
+    // 预生成两面的复制文本：
+    // 正面只复制当前展示的词本身（假名模式下即假名）；
+    // 背面复制完整信息（词 读音 音调 【词性】释义）。
+    refs.copyTextFront = kanaMode ? (word.kana || '') : (word.word || '');
+    refs.copyTextBack = buildCopyText(word, bank);
 
     if (!kanaMode) {
       // 默认：正面汉字 + 音调；背面假名 + 释义 + 词性 + 例句
@@ -394,15 +397,18 @@
       })(speakBtns[i]);
     }
 
-    // 复制按钮：读当前预生成的文本，正反两面各一个
-    var copyBtns = [refs.copyFront, refs.copyBack];
-    for (var c = 0; c < copyBtns.length; c++) {
-      (function (btn) {
-        btn.onclick = function (e) {
-          e.stopPropagation();
-          if (refs.copyText) copyText(refs.copyText, btn);
-        };
-      })(copyBtns[c]);
+    // 复制按钮：正面只复制词本身，背面复制完整信息
+    if (refs.copyFront) {
+      refs.copyFront.onclick = function (e) {
+        e.stopPropagation();
+        if (refs.copyTextFront) copyText(refs.copyTextFront, refs.copyFront);
+      };
+    }
+    if (refs.copyBack) {
+      refs.copyBack.onclick = function (e) {
+        e.stopPropagation();
+        if (refs.copyTextBack) copyText(refs.copyTextBack, refs.copyBack);
+      };
     }
   }
 
