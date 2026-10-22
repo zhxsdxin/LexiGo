@@ -32,6 +32,31 @@
   var ICON_SHUFFLE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>';
 
+  // 从 hachiware 背景图池里按 seed 稳定取一张（同名 seed 永远返回同一张）。
+  // 同一张卡片用相同 seed，背景就固定；不同卡片 seed 不同，自然分散到不同图。
+  function pickGif(seed) {
+    var pool = (global.LexiGo && global.LexiGo.HACHIWARE_GIFS) || [];
+    if (!pool.length) return '';
+    var h = 2166136261; // FNV-1a
+    for (var i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return 'assets/gifs/hachiware/' + pool[(h >>> 0) % pool.length];
+  }
+
+  /** 字符里是否含有汉字（CJK 统一表意文字） */
+  function hasKanji(s) {
+    return /[一-鿿]/.test(s || '');
+  }
+
+  /** 是否为外来语：词库分篇标记为外来语，或写法以片假名构成且无汉字 */
+  function isLoanword(word) {
+    if (word.chapter === '外来语') return true;
+    var w = word.word || '';
+    return !hasKanji(w) && /[ァ-ヿ]/.test(w);
+  }
+
   /**
    * 发音按钮。
    * 正反两面各有一个：按钮属于卡面，卡面翻转时按钮要跟着翻。
@@ -58,6 +83,7 @@
       '<div class="card__inner">' +
       // 正面：单词 + 音调
       '<div class="card__face card__face--front">' +
+      '<div class="card__bg" data-f="bg-front" aria-hidden="true"></div>' +
       '<div class="card__body">' +
       '<h2 class="card__word" lang="ja" data-f="word"></h2>' +
       '<span class="card__pitch" data-f="pitch-front" aria-hidden="true"></span>' +
@@ -66,6 +92,7 @@
       '</div>' +
       // 背面：假名 + 词性 + 释义
       '<div class="card__face card__face--back">' +
+      '<div class="card__bg" data-f="bg-back" aria-hidden="true"></div>' +
       '<div class="card__body">' +
       '<div class="card__kana-row">' +
       '<p class="card__kana" lang="ja" data-f="kana"></p>' +
@@ -97,6 +124,9 @@
       example: root.querySelector('[data-f="example"]'),
       exampleJp: root.querySelector('[data-f="example-jp"]'),
       exampleCn: root.querySelector('[data-f="example-cn"]'),
+      // 正反两面的背景图层（默认透明，仅特定卡片挂图）
+      bgFront: root.querySelector('[data-f="bg-front"]'),
+      bgBack: root.querySelector('[data-f="bg-back"]'),
       // 正反两面各一个发音按钮
       speakFront: root.querySelector('[data-side="front"]'),
       speakBack: root.querySelector('[data-side="back"]'),
@@ -121,32 +151,65 @@
    * 把词条内容写进已建好的骨架
    */
   function fillContent(refs, word, bank) {
-    refs.word.textContent = word.word;
-    refs.kana.textContent = word.kana;
-    refs.meaning.textContent = word.meaning;
+    var S = global.LexiGo.Settings;
+    var kanaMode = S ? S.get('kanaMode') : false;
 
-    // 音调：词库中没有音调时不渲染
+    if (!kanaMode) {
+      // 默认：正面汉字 + 音调；背面假名 + 释义 + 词性 + 例句
+      refs.word.textContent = word.word;
+      refs.kana.textContent = word.kana;
+      refs.meaning.textContent = word.meaning;
+
+      var posLabel = word.pos || '';
+      refs.pos.textContent = posLabel;
+      refs.pos.hidden = !posLabel;
+
+      var ex = word.example;
+      if (ex && (ex.jp || ex.cn)) {
+        refs.example.hidden = false;
+        refs.exampleJp.textContent = ex.jp || '';
+        refs.exampleJp.hidden = !ex.jp;
+        refs.exampleCn.textContent = ex.cn || '';
+        refs.exampleCn.hidden = !ex.cn;
+      } else {
+        refs.example.hidden = true;
+      }
+    } else {
+      // 假名模式：正面假名 + 读音；背面汉字（+释义，条件见下）
+      // 把汉字写进背面的假名槽、把假名写进正面的主词槽，不改动骨架，
+      // 这样翻面动画与 3D 结构都保持稳定。
+      refs.word.textContent = word.kana; // 正面：假名
+      refs.kana.textContent = word.word; //   背面：汉字
+      // 释义始终显示（所有词的中文意思都给到，含外来语与纯假名词）。
+      refs.meaning.textContent = word.meaning;
+      refs.meaning.hidden = false;
+      // 背面不再重复词性与例句
+      refs.pos.hidden = true;
+      refs.example.hidden = true;
+    }
+
+    // 音调：词库中没有音调时不渲染。假名模式下背面不再重复读音。
     var pitch = bank.hasPitch(word.pitch) ? bank.pitchMark(word.pitch) : '';
     refs.pitchFront.textContent = pitch;
     refs.pitchFront.hidden = !pitch;
     refs.pitchBack.textContent = pitch;
-    refs.pitchBack.hidden = !pitch;
+    refs.pitchBack.hidden = !pitch || kanaMode;
 
-    // 词性：为空时整块隐藏
-    var posLabel = word.pos || '';
-    refs.pos.textContent = posLabel;
-    refs.pos.hidden = !posLabel;
-
-    // 例句只在词库中存在时输出，不补齐、不编造
-    var ex = word.example;
-    if (ex && (ex.jp || ex.cn)) {
-      refs.example.hidden = false;
-      refs.exampleJp.textContent = ex.jp || '';
-      refs.exampleJp.hidden = !ex.jp;
-      refs.exampleCn.textContent = ex.cn || '';
-      refs.exampleCn.hidden = !ex.cn;
+    // 背景：从 hachiware 图池随机取图，正反面各一张，无需为每张卡准备副本。
+    // 按词条 id 做稳定哈希，同一张卡片始终同一张背景（翻面不闪），
+    // 不同卡片自然分散到不同图。图池清单见 assets/gifs/hachiware/gifs.js。
+    // 透明度走 --bg-opacity 变量（设置项 bgOpacity 控制），关闭时清空背景图。
+    var showBg = S ? S.get('showBackground') : true;
+    var opacity = S ? S.get('bgOpacity') : 0.05;
+    refs.root.style.setProperty('--bg-opacity', String(opacity));
+    if (showBg) {
+      var gf = pickGif(word.id + '|f');
+      var gb = pickGif(word.id + '|b');
+      refs.bgFront.style.backgroundImage = gf ? "url('" + gf + "')" : '';
+      refs.bgBack.style.backgroundImage = gb ? "url('" + gb + "')" : '';
     } else {
-      refs.example.hidden = true;
+      refs.bgFront.style.backgroundImage = '';
+      refs.bgBack.style.backgroundImage = '';
     }
   }
 

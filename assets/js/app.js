@@ -133,15 +133,21 @@
     if (slot && LG.HelpMenu) LG.HelpMenu.mount(slot);
   }
 
-  /** 注册内置词库 */
-  function registerBanks() {
-    if (LG.SAMPLE_BANK) LG.Banks.register(LG.SAMPLE_BANK);
-    if (LG.N3_BANK) LG.Banks.register(LG.N3_BANK);
+  /** 顶栏右侧挂显示设置入口（齿轮按钮，紧挨操作说明） */
+  function mountSettings() {
+    var slot = document.querySelector('.topbar__tools');
+    if (slot && LG.Settings) LG.Settings.mount(slot);
   }
 
-  /** 顶栏挂词库选择入口。切换后重建词序，避免越界 */
+  /** 注册内置词库（N3 排在前，作为默认主库） */
+  function registerBanks() {
+    if (LG.N3_BANK) LG.Banks.register(LG.N3_BANK);
+    if (LG.SAMPLE_BANK) LG.Banks.register(LG.SAMPLE_BANK);
+  }
+
+  /** 顶栏挂词库选择入口（紧贴词库名右侧）。切换后重建词序，避免越界 */
   function mountDeckMenu() {
-    var slot = document.querySelector('.topbar__tools');
+    var slot = document.querySelector('.topbar__decktools');
     if (!slot || !LG.DeckMenu) return;
     LG.DeckMenu.mount(slot, {
       onApply: function () {
@@ -238,6 +244,7 @@
     bindTabs();
     LG.Picker.bindAll();
     mountHelp();
+    mountSettings();
     mountDeckMenu();
 
     views.study = LG.StudyView;

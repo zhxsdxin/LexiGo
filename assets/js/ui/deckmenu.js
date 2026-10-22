@@ -12,6 +12,11 @@
   var LG = global.LexiGo;
   var KEY = 'lexigo.selection.v1';
 
+  // 首次进入（localStorage 没有记录）时的默认范围：N3 词汇王炸 · 基础词。
+  // 显式写出来，而不是依赖词库注册顺序，便于以后统一调整。
+  var DEFAULT_BANK_ID = 'n3';
+  var DEFAULT_SUBSETS = ['basic'];
+
   var ICON =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2 2 2 0 0 1 2-2h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 18.5z"/>' +
@@ -39,7 +44,7 @@
         if (v && typeof v === 'object') return v;
       }
     } catch (e) { /* 忽略 */ }
-    return { bankId: '', subsets: [] };
+    return { bankId: DEFAULT_BANK_ID, subsets: DEFAULT_SUBSETS.slice() };
   }
 
   function saveSelection(v) {

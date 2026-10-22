@@ -104,6 +104,18 @@
     });
 
     ensureRound(false);
+
+    // 设置变化时：仅调透明度时直接更新 CSS 变量（不重建卡片），其余重渲染当前卡
+    if (LG.Settings) {
+      LG.Settings.subscribe(function (key) {
+        if (key === 'bgOpacity') {
+          els.card.style.setProperty('--bg-opacity', String(LG.Settings.get('bgOpacity')));
+        } else {
+          render();
+        }
+      });
+    }
+
     render();
   }
 

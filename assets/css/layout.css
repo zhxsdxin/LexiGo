@@ -25,7 +25,7 @@
 
 .topbar__brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
 }
@@ -44,6 +44,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 词库名右侧的入口按钮（词库选择），垂直居中并轻微内缩 */
+.topbar__decktools {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  margin-left: -4px;
 }
 
 .topbar__meta {

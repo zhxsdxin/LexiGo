@@ -1,0 +1,135 @@
+/* ===========================================================
+   LexiGo · 显示设置面板
+   复用 .helpmenu 遮罩与 .helpmenu__panel 外壳，这里只补充
+   面板内部的表单控件样式（开关、透明度滑块）。
+   =========================================================== */
+
+/* hidden 属性要能真正隐藏遮罩层：类上的 display:flex 会压过
+   UA 的 [hidden]{display:none}，这里显式补一条更高优先级的规则。
+   顺带让 helpmenu 关闭后不再拦截整页点击。 */
+.helpmenu[hidden] {
+  display: none;
+}
+
+.settings__body {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0 2px;
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.settings__row:last-child {
+  border-bottom: none;
+}
+
+.settings__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.settings__label {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.settings__desc {
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+/* ---------- 开关 ---------- */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.switch__track {
+  width: 42px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.switch__thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(41, 42, 40, 0.22);
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.switch input:checked + .switch__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(18px);
+}
+
+.switch input:focus-visible + .switch__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- 透明度滑块 ---------- */
+.settings__row--range {
+  cursor: default;
+}
+
+.settings__range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.settings__range input[type='range'] {
+  width: 118px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.range__val {
+  min-width: 36px;
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__row--range.is-disabled {
+  opacity: 0.45;
+}
+
+.settings__row--range.is-disabled .settings__range input {
+  cursor: not-allowed;
+}

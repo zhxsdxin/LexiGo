@@ -92,6 +92,23 @@
 }
 
 /*
+ * 卡面背景图层：铺满卡面、居中显示，放在文字层之下。
+ * 透明度由 --bg-opacity 控制（设置项「背景透明度」写入，默认 0.05），
+ * 关闭背景图时 card.js 会把 background-image 清空，图层自然不可见。
+ * pointer-events: none 保证不挡住翻面点击与发音按钮。
+ */
+.card__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: var(--bg-opacity, 0.05);
+  pointer-events: none;
+}
+
+/*
  * 发音按钮：绝对定位在所属卡面的底部。
  * 按钮属于卡面，卡面翻转时它跟着一起翻。
  */
@@ -100,6 +117,7 @@
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
+  z-index: 2;
 }
 
 /*
@@ -108,6 +126,8 @@
  * 免得翻到一半文字还在位移。
  */
 .card__face > .card__body {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
