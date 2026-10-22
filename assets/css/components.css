@@ -40,6 +40,8 @@
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   transition: transform 350ms ease-in-out;
+  /* 提示浏览器（尤其 iOS）翻转期间常驻合成层，减少残影与丢帧 */
+  will-change: transform;
 }
 
 .card.is-flipped .card__inner {
@@ -79,6 +81,14 @@
   box-shadow: var(--shadow-card);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  /*
+   * iOS Safari 残影修复：
+   * 正面原本没有显式 transform，WebKit 不会为其建立独立合成层，
+   * 导致 backface-visibility:hidden 在翻转后失效，正面文字作为残影透到背面。
+   * 给两面都加显式 3D 变换 + translateZ(0) 提升合成层，背面剔除即可正常生效。
+   */
+  -webkit-transform: rotateY(0deg) translateZ(0);
+  transform: rotateY(0deg) translateZ(0);
   /* 内容不越过圆角，例句较长时也不会溢出到卡片外 */
   overflow: hidden;
 }
@@ -88,7 +98,8 @@
 }
 
 .card__face--back {
-  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg) translateZ(0);
+  transform: rotateY(180deg) translateZ(0);
 }
 
 /*
