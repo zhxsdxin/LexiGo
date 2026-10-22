@@ -12,6 +12,7 @@
 
   function normalize(raw) {
     if (!raw) return null;
+    var romaji = global.LexiGo.Romaji;
     var words = (raw.words || []).map(function (w, i) {
       return {
         id: w.id || ('x' + i),
@@ -23,6 +24,8 @@
         meaning: w.meaning || '',
         // src：外来语的源语言写法（ガイド → guide），无则空串
         src: w.src || '',
+        // romaji：读音的罗马字写法，用于按罗马字检索
+        romaji: romaji ? romaji.forms(w.kana) : '',
         // example：例句，词库中不存在时为 null
         example: w.example || null,
         part: w.part || '',

@@ -41,17 +41,24 @@
   }
 
   /**
-   * 按当前查询过滤词条。匹配 词/读音/释义（渲染时写入 data-search）。
-   * 全部隐藏时显示「无匹配」提示。
+   * 按当前查询过滤词条。
+   * 匹配范围：词目 / 假名 / 源语言 / 罗马字 / 中文释义，
+   * 均可命中（渲染时写入 data-search）。
+   * 另做一次「紧凑匹配」：忽略空格、连字符与撇号，
+   * 让 shi-bun、shi bun、kan'i 这类写法也能命中。
    */
   function applyFilter(picker) {
     if (!picker) return;
     var q = (picker.__query || '').trim().toLowerCase();
+    var qc = q.replace(/[\s\-'.]/g, '');
     var items = picker.querySelectorAll('.picker__item');
     var visible = 0;
     Array.prototype.forEach.call(items, function (it) {
       var hay = (it.getAttribute('data-search') || it.textContent || '').toLowerCase();
-      var show = !q || hay.indexOf(q) !== -1;
+      var show = !q || hay.indexOf(q) >= 0;
+      if (!show && qc) {
+        show = hay.replace(/[\s\-'.]/g, '').indexOf(qc) >= 0;
+      }
       it.style.display = show ? '' : 'none';
       if (show) visible += 1;
     });

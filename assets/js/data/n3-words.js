@@ -122,7 +122,7 @@ window.LexiGo.N3_BANK = { id: "n3", name: "N3 词汇王炸", words: [
   { id: 'n3b93', word: '砕く', kana: 'くだく', pitch: 2, pos: '动词', posAll: '动词', meaning: '敲碎，弄碎', part: 'basic', chapter: '' },
   { id: 'n3b94', word: '唇', kana: 'くちびる', pitch: 0, pos: '名词', posAll: '名词', meaning: '嘴唇', part: 'basic', chapter: '' },
   { id: 'n3b95', word: '加わる', kana: 'くわわる', pitch: 0, pos: '动词', posAll: '动词', meaning: '加，添加', part: 'basic', chapter: '' },
-  { id: 'n3b96', word: 'クラブ', kana: 'クラブ', pitch: 1, pos: '名词', posAll: '名词', meaning: '滑雪社团，俱乐部', src: 'club', part: 'basic', chapter: '' },
+  { id: 'n3b96', word: 'クラブ', kana: 'クラブ', pitch: 1, pos: '名词', posAll: '名词', meaning: '课外社团，俱乐部', src: 'club', part: 'basic', chapter: '' },
   { id: 'n3b97', word: 'クリーム', kana: 'クリーム', pitch: 0, pos: '名词', posAll: '名词', meaning: '奶油', src: 'cream', part: 'basic', chapter: '' },
   { id: 'n3b98', word: '警察', kana: 'けいさつ', pitch: 0, pos: '名词', posAll: '名词', meaning: '警察', part: 'basic', chapter: '' },
   { id: 'n3b99', word: '芸術', kana: 'げいじゅつ', pitch: 0, pos: '名词', posAll: '名词', meaning: '艺术', part: 'basic', chapter: '' },

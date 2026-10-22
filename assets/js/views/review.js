@@ -286,7 +286,7 @@
         box === 0
           ? '<span class="picker__tag picker__tag--weak">弱</span>'
           : '<span class="picker__tag">' + WordCard.escapeHtml(LG.Srs.boxName(box)) + '</span>';
-      var search = (w.word + ' ' + w.kana + ' ' + (w.src || '') + ' ' + w.meaning).toLowerCase();
+      var search = (w.word + ' ' + w.kana + ' ' + (w.src || '') + ' ' + (w.romaji || '') + ' ' + w.meaning).toLowerCase();
       html +=
         '<li class="picker__item' + (id === activeId ? ' is-active' : '') + '" data-jump="' +
         WordCard.escapeHtml(id) + '" data-search="' + WordCard.escapeHtml(search) + '">' +
