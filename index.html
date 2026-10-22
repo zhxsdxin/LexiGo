@@ -66,7 +66,13 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M16 15l-4 4-4-4"/></svg>
                 <span data-el="counter" class="navbar__counter"></span>
               </button>
-              <ul class="picker__list" data-el="picker-list"></ul>
+              <div class="picker__pop">
+                <div class="picker__search">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                  <input type="search" class="picker__input" placeholder="搜索单词 / 读音 / 释义" aria-label="搜索单词" autocomplete="off" />
+                </div>
+                <ul class="picker__list" data-el="picker-list"></ul>
+              </div>
             </div>
           </div>
           <div class="navbar__side">
@@ -89,7 +95,13 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M16 15l-4 4-4-4"/></svg>
               <span data-el="status"></span>
             </button>
-            <ul class="picker__list" data-el="picker-list"></ul>
+            <div class="picker__pop">
+              <div class="picker__search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input type="search" class="picker__input" placeholder="搜索单词 / 读音 / 释义" aria-label="搜索待复习单词" autocomplete="off" />
+              </div>
+              <ul class="picker__list" data-el="picker-list"></ul>
+            </div>
           </div>
           <div class="navbar__side">
             <button type="button" class="navbtn" data-el="restart">

@@ -14,6 +14,11 @@
     openPicker.classList.remove('is-open');
     var btn = openPicker.querySelector('.picker__toggle');
     if (btn) btn.setAttribute('aria-expanded', 'false');
+    // 清空搜索，下次打开是干净状态
+    var input = openPicker.querySelector('.picker__input');
+    if (input) input.value = '';
+    openPicker.__query = '';
+    applyFilter(openPicker);
     openPicker = null;
   }
 
@@ -25,9 +30,36 @@
     var btn = picker.querySelector('.picker__toggle');
     if (btn) btn.setAttribute('aria-expanded', 'true');
     openPicker = picker;
+    // 打开即聚焦搜索框，直接可输入
+    var input = picker.querySelector('.picker__input');
+    if (input) {
+      input.value = '';
+      picker.__query = '';
+      applyFilter(picker);
+      global.setTimeout(function () { input.focus(); }, 30);
+    }
   }
 
-  /** 给每个 .picker 绑定展开交互；列表内容与跳转由视图负责 */
+  /**
+   * 按当前查询过滤词条。匹配 词/读音/释义（渲染时写入 data-search）。
+   * 全部隐藏时显示「无匹配」提示。
+   */
+  function applyFilter(picker) {
+    if (!picker) return;
+    var q = (picker.__query || '').trim().toLowerCase();
+    var items = picker.querySelectorAll('.picker__item');
+    var visible = 0;
+    Array.prototype.forEach.call(items, function (it) {
+      var hay = (it.getAttribute('data-search') || it.textContent || '').toLowerCase();
+      var show = !q || hay.indexOf(q) !== -1;
+      it.style.display = show ? '' : 'none';
+      if (show) visible += 1;
+    });
+    var empty = picker.querySelector('.picker__empty');
+    if (empty) empty.style.display = q && visible === 0 ? 'block' : 'none';
+  }
+
+  /** 给每个 .picker 绑定展开交互与搜索过滤；列表内容与跳转由视图负责 */
   function bindAll() {
     var pickers = document.querySelectorAll('.picker');
     Array.prototype.forEach.call(pickers, function (picker) {
@@ -40,6 +72,19 @@
         e.stopPropagation();
         toggle(picker);
       });
+
+      // 搜索框：输入即过滤；回车不触发跳转，按键不冒泡到全局快捷键
+      var input = picker.querySelector('.picker__input');
+      if (input) {
+        input.addEventListener('input', function () {
+          picker.__query = input.value;
+          applyFilter(picker);
+        });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') e.preventDefault();
+          e.stopPropagation();
+        });
+      }
     });
   }
 
@@ -55,6 +100,8 @@
   global.LexiGo = global.LexiGo || {};
   global.LexiGo.Picker = {
     bindAll: bindAll,
-    close: close
+    close: close,
+    toggle: toggle,
+    applyFilter: applyFilter
   };
 })(window);

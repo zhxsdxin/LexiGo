@@ -286,15 +286,18 @@
         box === 0
           ? '<span class="picker__tag picker__tag--weak">弱</span>'
           : '<span class="picker__tag">' + WordCard.escapeHtml(LG.Srs.boxName(box)) + '</span>';
+      var search = (w.word + ' ' + w.kana + ' ' + w.meaning).toLowerCase();
       html +=
         '<li class="picker__item' + (id === activeId ? ' is-active' : '') + '" data-jump="' +
-        WordCard.escapeHtml(id) + '">' +
+        WordCard.escapeHtml(id) + '" data-search="' + WordCard.escapeHtml(search) + '">' +
         '<span class="picker__word" lang="ja">' + WordCard.escapeHtml(w.word) + '</span>' +
         '<span class="picker__meaning">' + WordCard.escapeHtml(w.meaning) + '</span>' +
         tag +
         '</li>';
     });
+    html += '<li class="picker__empty" style="display:none">没有匹配的单词</li>';
     els.pickerList.innerHTML = html;
+    if (LG.Picker && LG.Picker.applyFilter) LG.Picker.applyFilter(els.picker);
   }
 
   LG.ReviewView = {

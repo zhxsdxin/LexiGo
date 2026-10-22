@@ -225,15 +225,19 @@
           ? '<span class="picker__tag picker__tag--weak">弱</span>'
           : '<span class="picker__tag">已记</span>';
       }
+      var search = (w.word + ' ' + w.kana + ' ' + w.meaning).toLowerCase();
       html +=
         '<li class="picker__item' + (id === activeId ? ' is-active' : '') + '" data-jump="' +
-        WordCard.escapeHtml(id) + '">' +
+        WordCard.escapeHtml(id) + '" data-search="' + WordCard.escapeHtml(search) + '">' +
         '<span class="picker__word" lang="ja">' + WordCard.escapeHtml(w.word) + '</span>' +
         '<span class="picker__meaning">' + WordCard.escapeHtml(w.meaning) + '</span>' +
         mark +
         '</li>';
     });
+    html += '<li class="picker__empty" style="display:none">没有匹配的单词</li>';
     els.pickerList.innerHTML = html;
+    // 重新应用当前搜索词（若有），保证重渲染后过滤不丢失
+    if (LG.Picker && LG.Picker.applyFilter) LG.Picker.applyFilter(els.picker);
   }
 
   /** 一个词都没选中时的提示，引导去选子集 */

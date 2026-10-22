@@ -32,6 +32,12 @@
   var ICON_SHUFFLE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>';
 
+  var ICON_COPY =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+
+  var ICON_DONE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
   // 从 hachiware 背景图池里按 seed 稳定取一张（同名 seed 永远返回同一张）。
   // 同一张卡片用相同 seed，背景就固定；不同卡片 seed 不同，自然分散到不同图。
   function pickGif(seed) {
@@ -74,6 +80,75 @@
   }
 
   /**
+   * 复制按钮：与发音按钮同排，点一下把当前词条写进剪贴板。
+   * @param {string} side front / back
+   */
+  function copyButton(side) {
+    return (
+      '<button type="button" class="card__copy" data-act="copy" data-side="' + side + '"' +
+      ' aria-label="复制单词信息" title="复制单词信息">' +
+      ICON_COPY +
+      '</button>'
+    );
+  }
+
+  /** 生成要复制的纯文本：词 读音 音调 【词性】释义 */
+  function buildCopyText(word, bank) {
+    var seg = [];
+    if (word.word) seg.push(word.word);
+    if (word.kana && word.kana !== word.word) seg.push(word.kana);
+    var pitch = bank.hasPitch(word.pitch) ? bank.pitchMark(word.pitch) : '';
+    if (pitch) seg.push(pitch);
+    var s = seg.join(' ');
+    if (word.pos) s += ' 【' + word.pos + '】';
+    if (word.meaning) s += (s ? ' ' : '') + word.meaning;
+    return s;
+  }
+
+  /** 复制成功后的瞬时反馈：图标换成勾，1.3s 后还原 */
+  function flashCopied(btn) {
+    if (btn.__copyOrigHtml == null) btn.__copyOrigHtml = btn.innerHTML;
+    btn.classList.add('is-copied');
+    btn.innerHTML = ICON_DONE;
+    btn.setAttribute('aria-label', '已复制');
+    btn.title = '已复制';
+    if (btn.__copyTimer) global.clearTimeout(btn.__copyTimer);
+    btn.__copyTimer = global.setTimeout(function () {
+      btn.classList.remove('is-copied');
+      btn.innerHTML = btn.__copyOrigHtml;
+      btn.setAttribute('aria-label', '复制单词信息');
+      btn.title = '复制单词信息';
+    }, 1300);
+  }
+
+  /** 写剪贴板，带 file:// / 旧浏览器兜底 */
+  function copyText(text, btn) {
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '0';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ta.setSelectionRange(0, ta.value.length); } catch (e) {}
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      if (ok) flashCopied(btn);
+    }
+    if (global.navigator.clipboard && global.navigator.clipboard.writeText) {
+      global.navigator.clipboard.writeText(text).then(function () {
+        flashCopied(btn);
+      }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  /**
    * 建立卡片骨架，只执行一次。
    * @param {HTMLElement} root
    * @returns {object} 骨架内各节点的引用
@@ -88,7 +163,7 @@
       '<h2 class="card__word" lang="ja" data-f="word"></h2>' +
       '<span class="card__pitch" data-f="pitch-front" aria-hidden="true"></span>' +
       '</div>' +
-      speakButton('front') +
+      '<div class="card__tools">' + speakButton('front') + copyButton('front') + '</div>' +
       '</div>' +
       // 背面：假名 + 词性 + 释义
       '<div class="card__face card__face--back">' +
@@ -106,7 +181,7 @@
       '<p class="card__example-cn" data-f="example-cn" hidden></p>' +
       '</div>' +
       '</div>' +
-      speakButton('back') +
+      '<div class="card__tools">' + speakButton('back') + copyButton('back') + '</div>' +
       '</div>' +
       '</div>';
 
@@ -132,6 +207,9 @@
       speakBack: root.querySelector('[data-side="back"]'),
       speakLabelFront: root.querySelector('[data-f="speak-label-front"]'),
       speakLabelBack: root.querySelector('[data-f="speak-label-back"]'),
+      // 正反两面各一个复制按钮
+      copyFront: root.querySelector('.card__copy[data-side="front"]'),
+      copyBack: root.querySelector('.card__copy[data-side="back"]'),
       // 上一次渲染的词条 id，用来区分「换词」与「仅翻转」
       lastWordId: null
     };
@@ -153,6 +231,8 @@
   function fillContent(refs, word, bank) {
     var S = global.LexiGo.Settings;
     var kanaMode = S ? S.get('kanaMode') : false;
+    // 预生成复制文本，供正反两面的复制按钮直接取用
+    refs.copyText = buildCopyText(word, bank);
 
     if (!kanaMode) {
       // 默认：正面汉字 + 音调；背面假名 + 释义 + 词性 + 例句
@@ -286,7 +366,8 @@
     if (!root.__lexigoBound) {
       root.__lexigoBound = true;
       root.addEventListener('click', function (e) {
-        if (e.target.closest('.card__speak')) return;
+        // 底部工具条（发音/复制）区域内的点击不触发翻面
+        if (e.target.closest('.card__tools')) return;
         // 从 root 上读取当前回调，始终拿到最新闭包
         var cb = root.__lexigoOnFlip;
         if (cb) cb();
@@ -311,6 +392,17 @@
           if (opts.onSpeak) opts.onSpeak();
         };
       })(speakBtns[i]);
+    }
+
+    // 复制按钮：读当前预生成的文本，正反两面各一个
+    var copyBtns = [refs.copyFront, refs.copyBack];
+    for (var c = 0; c < copyBtns.length; c++) {
+      (function (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          if (refs.copyText) copyText(refs.copyText, btn);
+        };
+      })(copyBtns[c]);
     }
   }
 
