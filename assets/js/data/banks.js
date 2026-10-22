@@ -21,6 +21,10 @@
         pos: w.pos || '',
         posAll: w.posAll || '',
         meaning: w.meaning || '',
+        // src：外来语的源语言写法（ガイド → guide），无则空串
+        src: w.src || '',
+        // example：例句，词库中不存在时为 null
+        example: w.example || null,
         part: w.part || '',
         chapter: w.chapter || '',
         index: i

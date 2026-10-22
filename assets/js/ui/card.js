@@ -92,6 +92,16 @@
     );
   }
 
+  /**
+   * 词性文本：优先取 posAll（多词性用「｜」分隔，如 副词|形容词），
+   * 没有则退回 pos；显示时把「｜」换成「·」。
+   */
+  function posText(word) {
+    var raw = word.posAll || word.pos || '';
+    if (!raw) return '';
+    return String(raw).split('|').join('·');
+  }
+
   /** 生成要复制的纯文本：词 读音 音调 【词性】释义 */
   function buildCopyText(word, bank) {
     var seg = [];
@@ -100,7 +110,8 @@
     var pitch = bank.hasPitch(word.pitch) ? bank.pitchMark(word.pitch) : '';
     if (pitch) seg.push(pitch);
     var s = seg.join(' ');
-    if (word.pos) s += ' 【' + word.pos + '】';
+    var pos = posText(word);
+    if (pos) s += ' 【' + pos + '】';
     if (word.meaning) s += (s ? ' ' : '') + word.meaning;
     return s;
   }
@@ -231,19 +242,35 @@
   function fillContent(refs, word, bank) {
     var S = global.LexiGo.Settings;
     var kanaMode = S ? S.get('kanaMode') : false;
-    // 预生成两面的复制文本：
-    // 正面只复制当前展示的词本身（假名模式下即假名）；
-    // 背面复制完整信息（词 读音 音调 【词性】释义）。
-    refs.copyTextFront = kanaMode ? (word.kana || '') : (word.word || '');
+
+    // 外来语的源语言写法（ガイド → guide）。有 src 时：
+    //   普通模式：正面仍是片假名，背面改显源语言；
+    //   假名模式：正面直接显源语言，背面显片假名。
+    var src = word.src || '';
+
+    // 正面主词 / 背面主词
+    var frontText = kanaMode ? (src || word.kana || '') : (word.word || '');
+    var backText = kanaMode ? (word.word || '') : (src || word.kana || '');
+
+    // 复制文本：正面只复制正面展示的词本身；背面复制完整信息
+    refs.copyTextFront = frontText;
     refs.copyTextBack = buildCopyText(word, bank);
 
+    // 词性：多词性条目取 posAll，显示为「副词·形容词」
+    var posLabel = posText(word);
+
+    // 源语言是拉丁字母，标注 lang="en"，朗读与朗读引擎也能正确处理
+    var frontLang = (src && frontText === src) ? 'en' : 'ja';
+    var backLang = (src && backText === src) ? 'en' : 'ja';
+
     if (!kanaMode) {
-      // 默认：正面汉字 + 音调；背面假名 + 释义 + 词性 + 例句
+      // 默认：正面汉字 + 音调；背面读音（或源语言）+ 释义 + 词性 + 例句
       refs.word.textContent = word.word;
-      refs.kana.textContent = word.kana;
+      refs.word.setAttribute('lang', 'ja');
+      refs.kana.textContent = backText;
+      refs.kana.setAttribute('lang', backLang);
       refs.meaning.textContent = word.meaning;
 
-      var posLabel = word.pos || '';
       refs.pos.textContent = posLabel;
       refs.pos.hidden = !posLabel;
 
@@ -258,16 +285,15 @@
         refs.example.hidden = true;
       }
     } else {
-      // 假名模式：正面假名 + 读音；背面汉字（+释义，条件见下）
-      // 把汉字写进背面的假名槽、把假名写进正面的主词槽，不改动骨架，
-      // 这样翻面动画与 3D 结构都保持稳定。
-      refs.word.textContent = word.kana; // 正面：假名
-      refs.kana.textContent = word.word; //   背面：汉字
-      // 释义始终显示（所有词的中文意思都给到，含外来语与纯假名词）。
+      // 假名模式：正面假名（外来语为源语言）；背面汉字 + 释义 + 词性
+      refs.word.textContent = frontText;
+      refs.word.setAttribute('lang', frontLang);
+      refs.kana.textContent = backText;
+      refs.kana.setAttribute('lang', backLang);
       refs.meaning.textContent = word.meaning;
       refs.meaning.hidden = false;
-      // 背面不再重复词性与例句
-      refs.pos.hidden = true;
+      refs.pos.textContent = posLabel;
+      refs.pos.hidden = !posLabel;
       refs.example.hidden = true;
     }
 
