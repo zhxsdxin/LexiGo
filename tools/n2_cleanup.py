@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""N2 词库结构化补全（第一遍：数量已核对无误，这里补结构性缺口）。
+"""N2 词库结构化补全。
 
-做四件事，全部可复核：
-  1) 词目/读音去掉 OCR 换行产生的空格（「アクシデ ント」→「アクシデント」）
-  2) 外来语的读音列是源语言（与 N3 词单同款）：提取到 src，读音还原为片假名
-  3) 补 6 个 OCR 漏识的词目（已逐条放大裁图核对 PDF 原文）
-  4) 补 4 条空释义、4 条空词性
+第二遍（例句 + 重提后）在原有四件事基础上增加：
+  5) 例句两列去掉 OCR 换行空格
+  6) 人工订正改为无条件覆盖（重新提取后字段已被 OCR 填上，空的守卫会失效）
 
 只改 tools/n2-raw.json，再调 extract_words.write_js 重新生成 JS，
 raw JSON 仍是唯一数据源，后续校对只需改它再重跑。
@@ -33,6 +31,15 @@ for w in words:
         if nv != v:
             w[k] = nv
             spaced += 1
+    # 例句：日文句子与中文翻译都不含空格，OCR 换行产生的空格一律去掉
+    ex = w.get('example')
+    if ex:
+        for k in ('jp', 'cn'):
+            v = ex.get(k) or ''
+            nv = re.sub(r'\s+', '', v)
+            if nv != v:
+                ex[k] = nv
+                spaced += 1
 
 # ---- 2) 外来语：读音列是源语言 → 提取到 src，读音还原为片假名 ----
 LATIN = re.compile(r'^[A-Za-z][A-Za-z\s\-]*$')
@@ -62,8 +69,9 @@ WORD_FIX = {
 for wid, (px, n) in IDX.items():
     w = words[OFFSET[px] + n - 1]
     word, meaning = WORD_FIX[wid]
-    if not w['word']:
-        w['word'] = word
+    # 无条件覆盖：这些词目已放大裁图核对过 PDF 原文，
+    # 重新提取后 OCR 可能填上别的内容，以核对过的为准
+    w['word'] = word
     if meaning:
         w['meaning'] = meaning
 
@@ -93,14 +101,10 @@ POS_FIX = {
     'n2cx170': '形容动词',  # 哀れ（な形容詞）
     'n2cf4': '副词',    # 一層
 }
-for w in words:
-    pass
-# 用 ID 直接定位（raw 里没有 id 字段，按分篇偏移 + 序号算）
 for wid, meaning in MEANING_FIX.items():
     px, n = re.match(r'n2(b|ch|cd|cx|cw|cf)(\d+)', wid).groups()
     w = words[OFFSET[px] + int(n) - 1]
-    if not w['meaning']:
-        w['meaning'] = meaning
+    w['meaning'] = meaning
 for wid, pos in POS_FIX.items():
     px, n = re.match(r'n2(b|ch|cd|cx|cw|cf)(\d+)', wid).groups()
     w = words[OFFSET[px] + int(n) - 1]

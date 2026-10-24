@@ -486,7 +486,12 @@ def _to_gray(png: Path) -> np.ndarray:
 def find_table(png: Path):
     """还原表格网格。返回 (rows, col_edges)；非表格页返回 None。
 
-    col_edges 是 7 个列边界的像素 x。
+    col_edges 是所有列边界的像素 x，列数随版式变化：
+    N3 与 N2 基础词篇为 6 列（序号/单词/读音/声调/词性/释义）；
+    N2 核心词篇为 8 列（多出 例句的从句/例句翻译 两列）。
+    早期版本硬编码截取前 7 条线，会把例句列整列丢掉，
+    且让「释义」列被裁到错误的右边界（308-394 而非 308-615），
+    导致长释义被截断。现在按检测结果全量返回。
     """
     gray = _to_gray(png)
     H, W = gray.shape
@@ -513,7 +518,7 @@ def find_table(png: Path):
 
     if len(cols) < 7:
         return None
-    return rows, cols[:7]
+    return rows, cols
 
 
 def _trim_to_ink(gray: np.ndarray, pad: int = 6) -> np.ndarray:
@@ -544,11 +549,12 @@ def crop_cells(png: Path, rows: list[int], cols: list[int], work: Path, tag: int
 
     out = []
     n = 0
+    ncol = len(cols) - 1          # 实际列数：6（无例句）或 8（带例句）
     for ri in range(len(rows) - 1):
         y0, y1 = rows[ri] + 2, rows[ri + 1] - 2
         if y1 - y0 < 12 or y1 > H:
             continue
-        for ci in range(6):
+        for ci in range(ncol):
             # 只取单元格内部，排除左右表格边框线。
             # 边框是贯穿整格的竖线，Vision 会把它当内容，导致单字识别为空。
             x0, x1 = cols[ci] + 3, cols[ci + 1] - 3
@@ -903,6 +909,11 @@ def main():
             pos_raw = cells_map.get(4, '')
             meaning = cells_map.get(5, '')
 
+            # 例句两列只在核心词篇的 8 列版式出现（例句的从句 / 例句翻译）。
+            # 基础词篇 6 列版式没有这两列，取到空串。
+            ex_jp = cells_map.get(6, '') if len(cols) >= 9 else ''
+            ex_cn = cells_map.get(7, '') if len(cols) >= 9 else ''
+
             # 整行都没内容才算空行；单词列单独为空（单字汉字常被漏识）
             # 仍然保留条目，保证词条总数与词单一致
             if not w and not kana and not meaning:
@@ -927,6 +938,10 @@ def main():
                 'chapter': cur_chapter,
                 'page': idx + 1,
             }
+            ex_jp = to_simplified(ex_jp.strip())
+            ex_cn = to_simplified(ex_cn.strip())
+            if ex_jp or ex_cn:
+                entry['example'] = {'jp': ex_jp, 'cn': ex_cn}
             words.append(entry)
             no += 1
             if not w.strip():
@@ -1018,11 +1033,16 @@ def write_js(out_path: Path, words: list[dict],
         pitch = 'null' if w['pitch'] is None else w['pitch']
         src = w.get('src') or ''
         src_field = f"src: '{esc(src)}', " if src else ''
+        # 例句：词单 PDF 的「例句的从句 / 例句翻译」两列，仅核心词篇有
+        ex = w.get('example') or {}
+        ex_jp = esc(ex.get('jp') or '')
+        ex_cn = esc(ex.get('cn') or '')
+        ex_field = f"example: {{ jp: '{ex_jp}', cn: '{ex_cn}' }}, " if (ex_jp or ex_cn) else ''
 
         lines.append(
             f"  {{ id: '{wid}', word: '{esc(w['word'])}', kana: '{esc(w['kana'])}', "
             f"pitch: {pitch}, pos: '{esc(pos)}', posAll: '{esc(pos_all)}', "
-            f"meaning: '{meaning}', {src_field}part: '{w['part']}', chapter: '{w['chapter']}' }}"
+            f"meaning: '{meaning}', {src_field}{ex_field}part: '{w['part']}', chapter: '{w['chapter']}' }}"
             + (',' if i < len(words) - 1 else '')
         )
     lines.append(']};')
