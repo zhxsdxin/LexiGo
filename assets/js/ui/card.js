@@ -269,31 +269,29 @@
       refs.word.setAttribute('lang', 'ja');
       refs.kana.textContent = backText;
       refs.kana.setAttribute('lang', backLang);
-      refs.meaning.textContent = word.meaning;
-
-      refs.pos.textContent = posLabel;
-      refs.pos.hidden = !posLabel;
-
-      var ex = word.example;
-      if (ex && (ex.jp || ex.cn)) {
-        refs.example.hidden = false;
-        refs.exampleJp.textContent = ex.jp || '';
-        refs.exampleJp.hidden = !ex.jp;
-        refs.exampleCn.textContent = ex.cn || '';
-        refs.exampleCn.hidden = !ex.cn;
-      } else {
-        refs.example.hidden = true;
-      }
     } else {
-      // 假名模式：正面假名（外来语为源语言）；背面汉字 + 释义 + 词性
+      // 假名模式：正面假名（外来语为源语言）；背面汉字 + 释义 + 词性 + 例句
       refs.word.textContent = frontText;
       refs.word.setAttribute('lang', frontLang);
       refs.kana.textContent = backText;
       refs.kana.setAttribute('lang', backLang);
-      refs.meaning.textContent = word.meaning;
-      refs.meaning.hidden = false;
-      refs.pos.textContent = posLabel;
-      refs.pos.hidden = !posLabel;
+    }
+
+    // 释义 + 词性：两种模式都显示
+    refs.meaning.textContent = word.meaning;
+    refs.meaning.hidden = false;
+    refs.pos.textContent = posLabel;
+    refs.pos.hidden = !posLabel;
+
+    // 例句：两种模式都显示（日文例句 + 中文翻译）
+    var ex = word.example;
+    if (ex && (ex.jp || ex.cn)) {
+      refs.example.hidden = false;
+      refs.exampleJp.textContent = ex.jp || '';
+      refs.exampleJp.hidden = !ex.jp;
+      refs.exampleCn.textContent = ex.cn || '';
+      refs.exampleCn.hidden = !ex.cn;
+    } else {
       refs.example.hidden = true;
     }
 
