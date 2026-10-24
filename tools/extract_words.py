@@ -122,6 +122,10 @@ def normalize_pos(raw: str) -> tuple[str, list[str]]:
         elif re.fullmatch(r'[自他]\d?', p):
             # OCR 把「動」整个漏掉，只剩「自1」「他2」这类残码
             cats.append('动词')
+        elif p.startswith('自') or p.startswith('他'):
+            # 「自動1 / 他動1 / 自他動」被 OCR 读成「自云 / 他方 / 自代」等变体，
+            # 只要以自/他 开头就是动词的语态标记
+            cats.append('动词')
         elif p in POS_MAP:
             cats.append(POS_MAP[p])
         elif p.startswith('形'):
@@ -163,21 +167,29 @@ def guess_pos(word: str, kana: str) -> tuple[str, list[str]]:
 
 
 def normalize_pitch(raw: str) -> int | None:
-    """OCR 出的声调值归一化成 0-4。
+    """OCR 出的声调值归一化成 0-N。
 
     带圈数字常被识别成 'o'（⓪）、'1'（①）或裸数字，这里统一还原。
+    长词的音调可以到 ⑤ 甚至更高，因此带圈数字按 Unicode 区段通用解码，
+    而不是只列 ⓪-④。
     """
     if not raw:
         return None
     t = raw.strip()
-    # 先处理带圈字符：注意 '②'.isdigit() 为 True，必须先判这一支
-    circled = {'⓪': 0, '①': 1, '②': 2, '③': 3, '④': 4}
-    if t in circled:
-        return circled[t]
+    # 通用带圈数字解码：⓪/①-⑳/㉑-㉟/㊱-㊿
+    if len(t) == 1:
+        c = ord(t)
+        if c == 0x24EA:            # ⓪
+            return 0
+        if 0x2460 <= c <= 0x2473:  # ① - ⑳
+            return c - 0x2460 + 1
+        if 0x3251 <= c <= 0x325F:  # ㉑ - ㉟
+            return c - 0x3251 + 21
+        if 0x32B1 <= c <= 0x32BF:  # ㊱ - ㊿
+            return c - 0x32B1 + 36
     # 纯 ASCII 数字
     if re.fullmatch(r'\d+', t):
-        v = int(t)
-        return v if 0 <= v <= 4 else None
+        return int(t)
     # OCR 常见误识
     low = t.lower()
     if low in ('o', '0', '○', '〇'):
@@ -190,6 +202,16 @@ def normalize_pitch(raw: str) -> int | None:
         return 3
     if low in ('4', 'a'):
         return 4
+    if low in ('5', 's'):
+        return 5
+    if low in ('6', 'b'):
+        return 6
+    if low in ('7', 't'):
+        return 7
+    if low in ('8', 'e'):
+        return 8
+    if low in ('9', 'g'):
+        return 9
     return None
 
 
@@ -471,7 +493,10 @@ def find_table(png: Path):
     dark = gray < DARK
 
     rows = _runs([y for y in range(H) if dark[y].sum() > W * ROW_COVER], LINE_MAX)
-    if len(rows) < 4:
+    # 至少 3 条横线（2 个行带）。
+    # N2 的分篇末页可能只剩 2 行数据且不带表头（实测 p42 形容詞篇末页），
+    # 整页只有 3 条横线，用 <4 会把这两行整页丢掉。
+    if len(rows) < 3:
         return None
 
     # 竖线强度相对表格纵向范围计算，短表格也能正确识别
@@ -627,13 +652,37 @@ def ocr_header(page_png: Path, work: Path, tag: int):
     return texts
 
 
+def ocr_whole_page(page_png: Path, work: Path, tag: int) -> str:
+    """整页 OCR，用于识别非词表页（封面 / 分篇分隔页）上的篇名。
+
+    N2 的「基础词篇 / 核心词篇」只出现在分隔页，表格页页眉里没有，
+    靠这个才能知道后面的表格属于哪一篇。
+    """
+    work.mkdir(parents=True, exist_ok=True)
+    src = pymupdf.Pixmap(str(page_png))
+    arr = np.frombuffer(src.samples, dtype=np.uint8).reshape(src.height, src.width, src.n)
+    if arr.shape[2] == 1:
+        arr = np.repeat(arr, 3, axis=2)
+    else:
+        arr = np.ascontiguousarray(arr[:, :, :3])
+    dst = work / f'd{tag:03d}.png'
+    pm = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, arr.shape[1], arr.shape[0]), False)
+    pm.samples_mv[:] = arr.tobytes()
+    pm.save(dst)
+    proc = subprocess.run(
+        [str(Path(tempfile.gettempdir()) / 'lexigo_vocr'), str(dst)],
+        capture_output=True, text=True, timeout=300)
+    return proc.stdout.strip() if proc.returncode == 0 else ''
+
+
 # 篇名关键词 → 归属。
 # OCR 会把「基础词篇/核心词篇」认成「基砧河篇/核心河篇」等形近字，
 # 因此把实际出现过的变体一并列出。
 PART_PATTERNS = [
     ('基础', 'basic'), ('基礎', 'basic'), ('基砧', 'basic'), ('基柮', 'basic'),
+    ('基砒', 'basic'), ('基杢', 'basic'),
     ('核心', 'core'), ('核心词篇', 'core'), ('核心詞篇', 'core'),
-    ('核心河篇', 'core'), ('核心河篅', 'core'),
+    ('核心河篇', 'core'), ('核心河篅', 'core'), ('核心洞篇', 'core'),
 ]
 
 # 分篇标题关键词 → 子集。标题是红色大字，同样会被认成形近字。
@@ -648,7 +697,11 @@ CHAPTER_PATTERNS = [
     ('外来词', '外来语'), ('外來語', '外来语'), ('外来語', '外来语'),
     ('外来洞', '外来语'), ('外来语', '外来语'),
     # 副词
-    ('副词', '副词'), ('副詞', '副词'), ('副洞', '副词'), ('副词', '副词'),
+    ('副词', '副词'), ('副詞', '副词'), ('副洞', '副词'), ('副司', '副词'),
+    # 外来词（N2 首页标题常被读成「外来司」）
+    ('外来司', '外来语'), ('外來司', '外来语'),
+    # 动词（N2 首页标题常被读成「効河」）
+    ('効河', '动词'), ('効詞', '动词'),
 ]
 
 
@@ -668,6 +721,21 @@ def classify_section(header_texts) -> tuple[str, str]:
     return part, chapter
 
 
+def page_starts_chapter(byrow: dict, skip_rows: set) -> bool:
+    """该页首个数据行的序号是否为 1（即新分篇的第一页）。
+
+    用于分篇名漏识别时的兜底：N2 的外来词/副词首页，红色标题常被 OCR
+    读成「外来司」「副司」这类认不出的变体，但序号一定从 1 重新起算。
+    序号列本身不可信（会漏读误读），只用来判定「是否换章」这一个布尔量。
+    """
+    for ri in sorted(byrow):
+        if ri == 0 or ri in skip_rows:
+            continue
+        cell = (byrow[ri].get(0) or '').strip()
+        return cell.isdigit() and int(cell) == 1
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--pdf', required=True)
@@ -675,7 +743,23 @@ def main():
     ap.add_argument('--dpi', type=int, default=200)
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--dump', default='')
+    # 词库身份：同一套脚本可复用提取 N3 / N2 等多套词单
+    ap.add_argument('--bank-id', default='n3')
+    ap.add_argument('--bank-name', default='')
+    ap.add_argument('--global', dest='global_name', default='')
+    ap.add_argument('--source', default='')
+    # 分篇固定顺序（逗号分隔）。提供后启用「序号回到 1 即换章」的兜底，
+    # 用于分篇标题 OCR 认不出的版式（N2 的外来词/副词首页）。不传则保持 N3 行为。
+    ap.add_argument('--chapter-order', default='')
     args = ap.parse_args()
+
+    bank_id = args.bank_id
+    bank_name = args.bank_name or f'{bank_id.upper()} 词库'
+    global_name = args.global_name or f'{bank_id.upper()}_BANK'
+    chapter_order = [c.strip() for c in args.chapter_order.split(',') if c.strip()]
+    if args.source:
+        global SOURCE_NAME
+        SOURCE_NAME = args.source
 
     pdf = Path(args.pdf)
     if not pdf.exists():
@@ -696,24 +780,35 @@ def main():
     blanks = []# 单词列为空但保留了条目的行，便于人工补录
     cur_part = ''      # 基础词篇 / 核心词篇
     cur_chapter = ''   # 汉字 / 动词 / 形容词 / 外来语 / 副词 …
+    core_idx = -1      # 当前分篇在固定顺序里的位置
     for idx, page in enumerate(pages):
         grid = find_table(page)
         if not grid:
-            print(f'p{idx + 1:02d}  跳过（非词表页）')
+            # 非词表页（封面 / 分篇分隔页）：整页 OCR 认篇名。
+            # N2 的「基础词篇 / 核心词篇」只在分隔页出现，表格页页眉里没有。
+            div = ocr_whole_page(page, tmp / 'div', idx)
+            dp_, dc_ = classify_section([div])
+            if dp_ and dp_ != cur_part:
+                cur_part = dp_
+                cur_chapter = ''
+                core_idx = -1
+            tag = f'  识别到篇名 {dp_}' if dp_ else ''
+            print(f'p{idx + 1:02d}  跳过（非词表页）{tag}')
             continue
         rows, cols = grid
 
         # 页眉识别篇名。分篇标题只在该篇首页出现，之后沿用。
         hdr = ocr_header(page, tmp / 'hdr', idx)
         p_, c_ = classify_section(hdr)
-        # 只有「篇」真正变了才重置分篇。
-        # 核心词每一页的页眉都写着「核心词篇」，若无条件重置，
-        # 分篇名会在翻页时丢失，导致后面几百页都归到「无分篇」。
+        # 篇归属。
+        # N3 每页页眉都带「基础词篇/核心词篇」；N2 的篇名只在分隔页出现，
+        # 表格页页眉没有，只能由分篇名与先后顺序推断。
         if p_ and p_ != cur_part:
             cur_part = p_
             cur_chapter = ''
-        if c_:
-            cur_chapter = c_
+        elif not p_ and not cur_part:
+            # 还没有归属：N2 的第一个表格页属于基础词篇
+            cur_part = 'basic'
 
         cells = crop_cells(page, rows, cols, tmp / 'cells', idx)
         ocr = ocr_batch(cells)
@@ -722,6 +817,38 @@ def main():
         byrow = {}
         for (ri, ci), txt in ocr.items():
             byrow.setdefault(ri, {})[ci] = txt
+
+        # 表头与分篇标题行的识别
+        #
+        # 1) 表头行：单词 / 读音 / 词性 / 释义 四个列里有 ≥2 个命中 HEADER_NOISE。
+        #    只用单列判定会误伤真实词条——实测 #388「単語」的释义列被 OCR 读成
+        #    「単司」，与表头噪声撞车，单列匹配就会把这条真词丢掉。
+        # 2) 分篇标题行（红色大字「形容词」「外来语」等）：紧挨在表头行上方，
+        #    OCR 只能读出一两个残字，靠位置关系剔除。
+        header_rows = set()
+        for ri, cells_map in byrow.items():
+            hits = sum(1 for col in (1, 2, 4, 5)
+                       if cells_map.get(col, '') in HEADER_NOISE)
+            if hits >= 2:
+                header_rows.add(ri)
+        # 标题行 = 表头行的前一行带
+        skip_rows = set(header_rows) | {r - 1 for r in header_rows if r - 1 >= 0}
+
+        # 分篇归属：识别到分篇名就用它；漏识别时（N2 外来词/副词首页的红色标题
+        # 常被读成「外来司」「副司」）按「该页序号回到 1」判定换章，按固定顺序推进。
+        # 只有已进入核心词篇才推进——基础词篇首页的序号同样是 1，不能触发换章。
+        if c_:
+            cur_chapter = c_
+            if not p_:
+                cur_part = 'core'
+            if chapter_order and c_ in chapter_order:
+                core_idx = chapter_order.index(c_)
+        elif chapter_order and cur_part == 'core' and page_starts_chapter(byrow, skip_rows):
+            if core_idx < 0:
+                core_idx = 0              # 核心词篇的第一个分篇
+            elif core_idx + 1 < len(chapter_order):
+                core_idx += 1             # 后续分篇
+            cur_chapter = chapter_order[core_idx]
 
         # 页面位图，供声调模板匹配使用
         src = pymupdf.Pixmap(str(page))
@@ -765,21 +892,6 @@ def main():
         words = []
         key = (cur_part, cur_chapter)
         no = counters.get(key, 1)
-        # 表头与分篇标题行的识别
-        #
-        # 1) 表头行：单词 / 读音 / 词性 / 释义 四个列里有 ≥2 个命中 HEADER_NOISE。
-        #    只用单列判定会误伤真实词条——实测 #388「単語」的释义列被 OCR 读成
-        #    「単司」，与表头噪声撞车，单列匹配就会把这条真词丢掉。
-        # 2) 分篇标题行（红色大字「形容词」「外来语」等）：紧挨在表头行上方，
-        #    OCR 只能读出一两个残字，靠位置关系剔除。
-        header_rows = set()
-        for ri, cells_map in byrow.items():
-            hits = sum(1 for col in (1, 2, 4, 5)
-                       if cells_map.get(col, '') in HEADER_NOISE)
-            if hits >= 2:
-                header_rows.add(ri)
-        # 标题行 = 表头行的前一行带
-        skip_rows = set(header_rows) | {r - 1 for r in header_rows if r - 1 >= 0}
 
         for ri in sorted(byrow):
             if ri in skip_rows:
@@ -842,21 +954,24 @@ def main():
             json.dumps(all_words, ensure_ascii=False, indent=1), encoding='utf-8')
         print('原始数据已写入', args.dump)
 
-    write_js(Path(args.out), all_words)
+    write_js(Path(args.out), all_words,
+             bank_id=bank_id, bank_name=bank_name, global_name=global_name)
     return 0
 
 
-def write_js(out_path: Path, words: list[dict]):
+def write_js(out_path: Path, words: list[dict],
+             bank_id: str = 'n3', bank_name: str = 'N3 词库',
+             global_name: str = 'N3_BANK'):
     """输出前端可直接 <script> 引入的数据文件。
 
-    ID 规则：n3 + 分篇前缀 + 该分篇内序号
-        基础词     b      n3b1  – n3b364
-        核心词·汉字   ch    n3ch1  – n3ch495
-        核心词·动词   cd    n3cd1  – n3cd…
-        核心词·形容词 cx    n3cx1  – n3cx…
-        核心词·外来语 cw    n3cw1  – n3cw…
-        核心词·副词   cf    n3cf1  – n3cf…
-        核心词·其余   cn    n3cn1  – n3cn…
+    ID 规则：{bank_id} + 分篇前缀 + 该分篇内序号
+        基础词     b      n3b1  – n3b…
+        核心词·汉字   ch    n3ch1 – n3ch…
+        核心词·动词   cd    n3cd1 – n3cd…
+        核心词·形容词 cx    n3cx1 – n3cx…
+        核心词·外来语 cw    n3cw1 – n3cw…
+        核心词·副词   cf    n3cf1 – n3cf…
+        核心词·其余   cn    n3cn1 – n3cn…
     序号与词单 PDF 里的序号一致（分篇内从 1 开始连续）。
     """
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -878,16 +993,16 @@ def write_js(out_path: Path, words: list[dict]):
     counts = {}
     lines = [
         '/**',
-        ' * N3 词库（自动生成，请勿手工编辑）',
+        f' * {bank_name}（自动生成，请勿手工编辑）',
         ' ---------------------------------------------------------------',
         f' * 来源：{SOURCE_NAME}',
         f' * 由 tools/extract_words.py 从 PDF 扫描件 OCR 提取，共 {len(words)} 词。',
-        ' * ID = n3 + 分篇前缀 + 分篇内序号，与词单 PDF 序号一致。',
-        ' *   b 基础词 / ch 汉字 / cd 动词 / cx 形容词 / cw 外来语 / cf 副词 / cn 其余核心',
-        ' * 音调 0-4；null 表示该词在词单中未标声调。',
+        f' * ID = {bank_id} + 分篇前缀 + 分篇内序号，与词单 PDF 序号一致。',
+        f' *   b 基础词 / ch 汉字 / cd 动词 / cx 形容词 / cw 外来语 / cf 副词 / cn 其余核心',
+        ' * 音调 0-N；null 表示该词在词单中未标声调。',
         ' */',
         "window.LexiGo = window.LexiGo || {};",
-        f'window.LexiGo.N3_BANK = {{ id: "n3", name: "N3 词汇王炸", words: [',
+        f'window.LexiGo.{global_name} = {{ id: "{bank_id}", name: "{bank_name}", words: [',
     ]
 
     for i, w in enumerate(words):
@@ -895,17 +1010,19 @@ def write_js(out_path: Path, words: list[dict]):
         px = prefix.get(key, 'n')
         n = counts.get(key, 0) + 1
         counts[key] = n
-        wid = f'n3{px}{n}'
+        wid = f'{bank_id}{px}{n}'
 
         meaning = esc(w['meaning'].replace('，', ',').replace(';', '，')).replace(',', '，')
         pos = w['pos'] or ''
         pos_all = '|'.join(w.get('pos_all') or [])
         pitch = 'null' if w['pitch'] is None else w['pitch']
+        src = w.get('src') or ''
+        src_field = f"src: '{esc(src)}', " if src else ''
 
         lines.append(
             f"  {{ id: '{wid}', word: '{esc(w['word'])}', kana: '{esc(w['kana'])}', "
             f"pitch: {pitch}, pos: '{esc(pos)}', posAll: '{esc(pos_all)}', "
-            f"meaning: '{meaning}', part: '{w['part']}', chapter: '{w['chapter']}' }}"
+            f"meaning: '{meaning}', {src_field}part: '{w['part']}', chapter: '{w['chapter']}' }}"
             + (',' if i < len(words) - 1 else '')
         )
     lines.append(']};')
@@ -916,7 +1033,7 @@ def write_js(out_path: Path, words: list[dict]):
     for key, n in counts.items():
         px = prefix.get(key, 'n')
         label = '基础词' if key[0] == 'basic' else (key[1] or '其余核心')
-        print(f'  {label:8} n3{px}1 - n3{px}{n}  ({n} 词)')
+        print(f'  {label:8} {bank_id}{px}1 - {bank_id}{px}{n}  ({n} 词)')
 
 
 if __name__ == '__main__':

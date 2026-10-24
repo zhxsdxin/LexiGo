@@ -142,6 +142,7 @@
   /** 注册内置词库（N3 排在前，作为默认主库） */
   function registerBanks() {
     if (LG.N3_BANK) LG.Banks.register(LG.N3_BANK);
+    if (LG.N2_BANK) LG.Banks.register(LG.N2_BANK);
     if (LG.SAMPLE_BANK) LG.Banks.register(LG.SAMPLE_BANK);
   }
 

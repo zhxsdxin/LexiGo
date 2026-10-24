@@ -27,3 +27,5 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+# 词单 PDF 源文件（几十 MB 的扫描件，不入库；提取结果在 tools/*-raw.json）
+/*.pdf
