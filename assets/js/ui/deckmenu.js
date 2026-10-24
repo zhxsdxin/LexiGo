@@ -162,6 +162,7 @@
     // 事件委托绑在 root 上：render() 只替换 panel.innerHTML，
     // root 本身不重建，所以监听始终有效，且不需要重复绑定。
     root.addEventListener('click', onRootClick);
+    bindSwipe();
     document.body.appendChild(root);
   }
 
@@ -194,16 +195,19 @@
       '</button>' +
       '</div>';
 
-    // 词库切换
+    // 词库切换。每行的背景是一条进度条，宽度 = 已选词数 / 该库总词数
     if (banks.length > 1) {
-      html += '<p class="deckmenu__label">词库</p><div class="deckmenu__banks">';
+      html +=
+        '<p class="deckmenu__label">词库' +
+        '<span class="deckmenu__hint">右滑全选 · 左滑清空</span>' +
+        '</p><div class="deckmenu__banks">';
       banks.forEach(function (b) {
         var on = b.id === draft.currentBankId;
-        // 这个库被选了多少词 —— 切换走之后仍然显示，方便看出哪些库在生效
         var n = countBank(draft, b.id);
         html +=
-          '<button type="button" class="deckbank' + (on ? ' is-on' : '') +
-          (n > 0 && !on ? ' is-picked' : '') + '" data-bank="' + esc(b.id) + '">' +
+          '<button type="button" class="deckbank' + (on ? ' is-on' : '') + '" data-bank="' +
+          esc(b.id) + '">' +
+          '<span class="deckbank__fill" style="width:' + fillPct(b, n).toFixed(1) + '%"></span>' +
           '<span class="deckbank__name">' + esc(b.name) + '</span>' +
           '<span class="deckbank__count' + (n > 0 ? ' is-on' : '') + '">' +
           (n > 0 ? '已选 ' + n + ' / ' + b.total : b.total + ' 词') +
@@ -275,6 +279,12 @@
       '</div>';
 
     panel.innerHTML = html;
+  }
+
+  /** 进度条宽度百分比：已选词数占该库总词数的比例 */
+  function fillPct(bank, n) {
+    if (!bank || !bank.total) return 0;
+    return Math.max(0, Math.min(100, n / bank.total * 100));
   }
 
   /** 某个词库里真正有词的子集 id（空子集不参与「全选」判定） */
@@ -351,6 +361,9 @@
     var closeBtn = e.target.closest('[data-act="close"]');
     if (closeBtn) { close(); return; }
 
+    // 刚滑完的那一下浏览器还会补一个 click，别把它当成「切换词库」
+    if (suppressClick) { suppressClick = false; return; }
+
     var bankBtn = e.target.closest('[data-bank]');
     if (bankBtn) {
       // 只切换「正在编辑哪个库」，各库自己的勾选原样保留
@@ -367,12 +380,7 @@
       var i = subs.indexOf(id);
       if (i >= 0) subs.splice(i, 1);
       else subs.push(id);
-      chip.classList.toggle('is-on');
-      chip.setAttribute('aria-pressed', chip.classList.contains('is-on') ? 'true' : 'false');
-      // 词库按钮上的「已选 N」、底部全选/清空的置灰状态都要跟着变
-      updateBankCounts();
-      updateFootButtons();
-      refreshSummary();
+      refreshAfterChange();
       return;
     }
 
@@ -380,15 +388,11 @@
     if (!act || act.disabled) return;
     var what = act.getAttribute('data-act');
     if (what === 'all') {
-      draft.banks[draft.currentBankId] = LG.Banks.subsets()
-        .filter(function (d) {
-          return LG.Banks.subsetIds(draft.currentBankId, d.id).length > 0;
-        })
-        .map(function (d) { return d.id; });
-      render();
+      selectAllBank(draft.currentBankId);
+      refreshAfterChange();
     } else if (what === 'none') {
-      draft.banks[draft.currentBankId] = [];
-      render();
+      clearBank(draft.currentBankId);
+      refreshAfterChange();
     } else if (what === 'apply') {
       saveSelection(draft);
       close();
@@ -414,8 +418,8 @@
     }
   }
 
-  /** 只改词库按钮右侧的计数，不整块重绘 */
-  function updateBankCounts() {
+  /** 增量更新词库行：进度条宽度 + 右侧计数。不整块重绘，宽度才有过渡动画 */
+  function updateBankRows() {
     var btns = panel.querySelectorAll('[data-bank]');
     for (var i = 0; i < btns.length; i++) {
       var btn = btns[i];
@@ -423,13 +427,93 @@
       var bank = LG.Banks.get(bid);
       if (!bank) continue;
       var n = countBank(draft, bid);
+      var fill = btn.querySelector('.deckbank__fill');
+      if (fill) fill.style.width = fillPct(bank, n).toFixed(1) + '%';
       var el = btn.querySelector('.deckbank__count');
       if (el) {
         el.textContent = n > 0 ? ('已选 ' + n + ' / ' + bank.total) : (bank.total + ' 词');
         el.classList.toggle('is-on', n > 0);
       }
-      btn.classList.toggle('is-picked', n > 0 && bid !== draft.currentBankId);
     }
+  }
+
+  /** 勾选变化后统一刷新：词库行进度条、子集勾选态、底部按钮置灰、底部合计 */
+  function refreshAfterChange() {
+    updateBankRows();
+    updateChips();
+    updateFootButtons();
+    refreshSummary();
+  }
+
+  /** 按 draft 重刷子集 chip 的勾选态，避免 DOM 与数据不同步 */
+  function updateChips() {
+    var cur = subsOf(draft, draft.currentBankId) || [];
+    var chips = panel.querySelectorAll('[data-subset]');
+    for (var i = 0; i < chips.length; i++) {
+      var on = cur.indexOf(chips[i].getAttribute('data-subset')) >= 0;
+      chips[i].classList.toggle('is-on', on);
+      chips[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  }
+
+  /** 整库全选（滑动与底部按钮共用） */
+  function selectAllBank(bankId) {
+    var all = nonEmptySubsets(bankId);
+    if (!all.length) return false;
+    draft.banks[bankId] = all;
+    return true;
+  }
+
+  /** 整库清空（滑动与底部按钮共用） */
+  function clearBank(bankId) {
+    draft.banks[bankId] = [];
+  }
+
+  // ---- 词库行滑动手势：右滑全选、左滑清空 ----
+  var SWIPE = 48;
+  var swipe = null;
+  var suppressClick = false;
+  var suppressTimer = 0;
+
+  function bindSwipe() {
+    panel.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      var btn = e.target.closest('[data-bank]');
+      if (!btn) return;
+      swipe = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        bankId: btn.getAttribute('data-bank')
+      };
+    });
+
+    global.addEventListener('pointerup', function (e) {
+      if (!swipe || e.pointerId !== swipe.id) return;
+      var s = swipe;
+      swipe = null;
+      var dx = e.clientX - s.x;
+      var dy = e.clientY - s.y;
+      // 横向位移够大、且明显压过纵向才算滑动 —— 面板本身要纵向滚动，
+      // 判定放宽会把滚动误认成滑动
+      if (Math.abs(dx) < SWIPE || Math.abs(dx) <= Math.abs(dy)) return;
+
+      // 抬手后浏览器通常补一个 click，挡掉，否则会顺带把词库切了
+      suppressClick = true;
+      global.clearTimeout(suppressTimer);
+      suppressTimer = global.setTimeout(function () { suppressClick = false; }, 400);
+
+      var changed;
+      if (dx > 0) {
+        changed = selectAllBank(s.bankId);   // 右滑 → 整库全选，进度条走满
+      } else {
+        clearBank(s.bankId);                 // 左滑 → 整库清空，进度条归零
+        changed = true;
+      }
+      if (changed) refreshAfterChange();
+    });
+
+    global.addEventListener('pointercancel', function () { swipe = null; });
   }
 
   function open() {

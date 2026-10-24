@@ -139,11 +139,10 @@
     if (slot && LG.Settings) LG.Settings.mount(slot);
   }
 
-  /** 注册内置词库（N3 排在前，作为默认主库） */
+  /** 注册内置词库（N3 排在前，作为默认主库）。示例库已移除 */
   function registerBanks() {
     if (LG.N3_BANK) LG.Banks.register(LG.N3_BANK);
     if (LG.N2_BANK) LG.Banks.register(LG.N2_BANK);
-    if (LG.SAMPLE_BANK) LG.Banks.register(LG.SAMPLE_BANK);
   }
 
   /** 顶栏挂词库选择入口（紧贴词库名右侧）。切换后重建词序，避免越界 */
@@ -179,11 +178,20 @@
       if (!subs || !subs.length) return;
       var bank = LG.Banks.get(bankId);
       if (!bank) return;
+      // 勾满整库时写「全部」，否则六个子集名会顶出一长串
+      var allCount = LG.Banks.subsets().filter(function (d) {
+        return LG.Banks.subsetIds(bankId, d.id).length > 0;
+      }).length;
+      var isAll = allCount > 0 && subs.length >= allCount;
       var names = [];
-      subs.forEach(function (id) {
-        var def = LG.Banks.getSubset(id);
-        if (def) names.push(def.name);
-      });
+      if (isAll) {
+        names.push('全部');
+      } else {
+        subs.forEach(function (id) {
+          var def = LG.Banks.getSubset(id);
+          if (def) names.push(def.name);
+        });
+      }
       parts.push(shortBankName(bank) + (names.length ? '·' + names.join('/') : ''));
     });
     el.textContent = parts.length ? parts.join(' + ') : '未选范围';
