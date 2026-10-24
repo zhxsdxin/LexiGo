@@ -80,6 +80,20 @@
   }
 
   /**
+   * 发音按钮要朗读的文本。
+   * 正面始终读词头（词 + 读音，中间顿一下便于听清）；
+   * 背面若卡面展示了日文例句，则读整句，没有例句时才退回读词。
+   * @param {boolean} isBack 是否为背面按钮
+   * @param {object} word    词库条目
+   */
+  function speakTextFor(isBack, word) {
+    var head = word.word + '、' + word.kana;
+    if (!isBack) return head;
+    var ex = word.example;
+    return (ex && ex.jp) ? ex.jp : head;
+  }
+
+  /**
    * 复制按钮：与发音按钮同排，点一下把当前词条写进剪贴板。
    * @param {string} side front / back
    */
@@ -295,6 +309,15 @@
       refs.example.hidden = true;
     }
 
+    // 背面发音按钮的文案跟随朗读内容：读整句时提示「读例句」。
+    // 发音不可用时标签已被置为「发音不可用」，这里不再覆盖。
+    var sp = global.LexiGo.Speech;
+    if (refs.speakBack && refs.speakLabelBack && sp && sp.supported) {
+      var hasExJp = !!(ex && ex.jp);
+      refs.speakLabelBack.textContent = hasExJp ? '读例句' : '发音';
+      refs.speakBack.setAttribute('aria-label', hasExJp ? '播放例句发音' : '播放日语发音');
+    }
+
     // 音调：词库中没有音调时不渲染。假名模式下背面不再重复读音。
     var pitch = bank.hasPitch(word.pitch) ? bank.pitchMark(word.pitch) : '';
     refs.pitchFront.textContent = pitch;
@@ -402,19 +425,23 @@
     }
     root.__lexigoOnFlip = opts.onFlip || null;
 
-    // 发音按钮：读当前展示的词，而不是绑定时的那一个
+    // 发音按钮：读当前展示的词，而不是绑定时的那一个。
+    // 背面在卡面有例句时读整句，因此两面的朗读文本分开取。
     var speakBtns = [refs.speakFront, refs.speakBack];
     for (var i = 0; i < speakBtns.length; i++) {
       (function (btn) {
         btn.onclick = function (e) {
           e.stopPropagation();
           if (!speech.supported) return;
-          var ok = speech.speak(word.word + '、' + word.kana);
+          var text = speakTextFor(btn === refs.speakBack, word);
+          var ok = speech.speak(text);
           if (ok) {
             btn.classList.add('is-speaking');
+            // 整句比单词长得多，动画时长按字数粗估，避免还没读完就停了
+            var ms = Math.min(6000, Math.max(1600, text.length * 130));
             global.setTimeout(function () {
               btn.classList.remove('is-speaking');
-            }, 1600);
+            }, ms);
           }
           if (opts.onSpeak) opts.onSpeak();
         };
