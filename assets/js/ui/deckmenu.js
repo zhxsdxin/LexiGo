@@ -253,10 +253,20 @@
     // 底部操作
     var active = countActive(draft);
     var nbanks = activeBankIdsIn(draft).length;
+    // 全选了就没得再全选，一个没勾就没得再清空，这两种情况把按钮置灰
+    var allSubs = nonEmptySubsets(draft.currentBankId);
+    // 一个可选子集都没有的库（如示例库），全选同样没意义，一并置灰
+    var noSubs = allSubs.length === 0;
+    var pickedAll = noSubs || isAllPicked(draft, draft.currentBankId);
+    var pickedNone = curSubs.length === 0;
     html +=
       '<div class="deckmenu__foot">' +
-      '<button type="button" class="deckmenu__all" data-act="all" title="勾选当前词库的全部子集">全选</button>' +
-      '<button type="button" class="deckmenu__all" data-act="none" title="取消当前词库的勾选">清空</button>' +
+      '<button type="button" class="deckmenu__all" data-act="all"' +
+      (pickedAll ? ' disabled' : '') +
+      ' title="' + (noSubs ? '当前词库没有可选子集' : pickedAll ? '当前词库已全部勾选' : '勾选当前词库的全部子集') + '">全选</button>' +
+      '<button type="button" class="deckmenu__all" data-act="none"' +
+      (pickedNone ? ' disabled' : '') +
+      ' title="' + (pickedNone ? '当前词库没有勾选' : '取消当前词库的勾选') + '">清空</button>' +
       '<span class="deckmenu__summary">已选 <strong>' + active + '</strong> 词' +
       // 跨库时换行单独一行，不用「·」接在同一行末尾
       (nbanks > 1 ? '<span class="deckmenu__summary-note">' + nbanks + ' 个词库</span>' : '') +
@@ -265,6 +275,24 @@
       '</div>';
 
     panel.innerHTML = html;
+  }
+
+  /** 某个词库里真正有词的子集 id（空子集不参与「全选」判定） */
+  function nonEmptySubsets(bankId) {
+    return LG.Banks.subsets()
+      .filter(function (d) { return LG.Banks.subsetIds(bankId, d.id).length > 0; })
+      .map(function (d) { return d.id; });
+  }
+
+  /** 某个词库是不是已经把非空子集全勾上了 */
+  function isAllPicked(d, bankId) {
+    var all = nonEmptySubsets(bankId);
+    if (!all.length) return false;
+    var cur = subsOf(d, bankId) || [];
+    for (var i = 0; i < all.length; i++) {
+      if (cur.indexOf(all[i]) < 0) return false;
+    }
+    return true;
   }
 
   /** 单个词库被选中的词数（跨子集去重） */
@@ -341,14 +369,15 @@
       else subs.push(id);
       chip.classList.toggle('is-on');
       chip.setAttribute('aria-pressed', chip.classList.contains('is-on') ? 'true' : 'false');
-      // 词库按钮上的「已选 N」也要跟着变
+      // 词库按钮上的「已选 N」、底部全选/清空的置灰状态都要跟着变
       updateBankCounts();
+      updateFootButtons();
       refreshSummary();
       return;
     }
 
     var act = e.target.closest('[data-act]');
-    if (!act) return;
+    if (!act || act.disabled) return;
     var what = act.getAttribute('data-act');
     if (what === 'all') {
       draft.banks[draft.currentBankId] = LG.Banks.subsets()
@@ -364,6 +393,24 @@
       saveSelection(draft);
       close();
       if (ctx && ctx.onApply) ctx.onApply();
+    }
+  }
+
+  /** 同步底部「全选 / 清空」的可用状态：全选了禁用全选，一个没勾禁用清空 */
+  function updateFootButtons() {
+    var allBtn = panel.querySelector('[data-act="all"]');
+    var noneBtn = panel.querySelector('[data-act="none"]');
+    var noSubs = nonEmptySubsets(draft.currentBankId).length === 0;
+    var pickedAll = noSubs || isAllPicked(draft, draft.currentBankId);
+    var pickedNone = (subsOf(draft, draft.currentBankId) || []).length === 0;
+    if (allBtn) {
+      allBtn.disabled = pickedAll;
+      allBtn.title = noSubs ? '当前词库没有可选子集'
+        : pickedAll ? '当前词库已全部勾选' : '勾选当前词库的全部子集';
+    }
+    if (noneBtn) {
+      noneBtn.disabled = pickedNone;
+      noneBtn.title = pickedNone ? '当前词库没有勾选' : '取消当前词库的勾选';
     }
   }
 

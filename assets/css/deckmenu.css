@@ -288,6 +288,17 @@
   background: var(--line);
 }
 
+/* 已全选时禁用「全选」，一个都没勾时禁用「清空」 */
+.deckmenu__all:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.deckmenu__all:disabled:hover {
+  color: var(--ink-soft);
+  background: var(--bg-soft);
+}
+
 .deckmenu__summary {
   flex: 1;
   font-size: 12.5px;
