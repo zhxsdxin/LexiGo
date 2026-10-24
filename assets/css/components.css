@@ -248,9 +248,26 @@
 .card__example-jp {
   font-family: var(--font-jp);
   font-size: 14.5px;
-  line-height: 1.75;
+  /* 汉字上方有振假名：1.75 时 rt 已接近顶到上一行，略放到 1.9 留出空间 */
+  line-height: 1.9;
   color: var(--ink-soft);
   margin: 0;
+}
+
+/* 例句里的振假名 */
+.card__example-jp ruby {
+  ruby-align: center;
+}
+
+.card__example-jp rt {
+  font-family: var(--font-jp);
+  font-size: 0.52em;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink-faint);
+  /* 朗读与复制时不需要振假名，也不参与选中 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .card__example-cn {

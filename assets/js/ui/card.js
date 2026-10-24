@@ -251,6 +251,41 @@
   }
 
   /**
+   * 把紧凑标记 [漢字|よみ] 渲染成 <ruby> 元素。
+   * 逐段 createElement 拼接，不用 innerHTML —— 文本里的字符不会被当成标签解析。
+   * 文本里没有标记时退化为普通文本（N3 暂无例句数据即走这条）。
+   * @param {HTMLElement} el   目标元素，会被清空后重写
+   * @param {string}      text 含 [漢字|よみ] 标记的文本
+   */
+  function renderRuby(el, text) {
+    el.textContent = '';
+    if (!text) return;
+    var doc = global.document;
+    var re = /\[([^\[\]|]+)\|([^\[\]|]+)\]/g;
+    if (!re.test(text)) {
+      el.textContent = text;
+      return;
+    }
+    re.lastIndex = 0;
+    var last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) {
+        el.appendChild(doc.createTextNode(text.slice(last, m.index)));
+      }
+      var ruby = doc.createElement('ruby');
+      ruby.appendChild(doc.createTextNode(m[1]));
+      var rt = doc.createElement('rt');
+      rt.textContent = m[2];
+      ruby.appendChild(rt);
+      el.appendChild(ruby);
+      last = re.lastIndex;
+    }
+    if (last < text.length) {
+      el.appendChild(doc.createTextNode(text.slice(last)));
+    }
+  }
+
+  /**
    * 把词条内容写进已建好的骨架
    */
   function fillContent(refs, word, bank) {
@@ -301,7 +336,8 @@
     var ex = word.example;
     if (ex && (ex.jp || ex.cn)) {
       refs.example.hidden = false;
-      refs.exampleJp.textContent = ex.jp || '';
+      // 优先用带振假名标记的 ruby 字段；没有该字段时退回纯文本 jp
+      renderRuby(refs.exampleJp, ex.ruby || ex.jp || '');
       refs.exampleJp.hidden = !ex.jp;
       refs.exampleCn.textContent = ex.cn || '';
       refs.exampleCn.hidden = !ex.cn;
