@@ -258,7 +258,8 @@
       '<button type="button" class="deckmenu__all" data-act="all" title="勾选当前词库的全部子集">全选本库</button>' +
       '<button type="button" class="deckmenu__all" data-act="none" title="取消当前词库的勾选">清空本库</button>' +
       '<span class="deckmenu__summary">已选 <strong>' + active + '</strong> 词' +
-      (nbanks > 1 ? '<span class="deckmenu__summary-note"> · ' + nbanks + ' 个词库</span>' : '') +
+      // 跨库时换行单独一行，不用「·」接在同一行末尾
+      (nbanks > 1 ? '<span class="deckmenu__summary-note">' + nbanks + ' 个词库</span>' : '') +
       '</span>' +
       '<button type="button" class="btn btn--primary deckmenu__apply" data-act="apply">开始学习</button>' +
       '</div>';
@@ -311,7 +312,7 @@
         note.className = 'deckmenu__summary-note';
         box.appendChild(note);
       }
-      note.textContent = ' · ' + nbanks + ' 个词库';
+      note.textContent = nbanks + ' 个词库';
     } else if (note) {
       note.remove();
     }

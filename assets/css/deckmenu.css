@@ -301,8 +301,13 @@
   font-weight: 600;
 }
 
+/* 跨库时独占一行，紧跟在「已选 N 词」下面 */
 .deckmenu__summary-note {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
   color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .deckmenu__apply {
