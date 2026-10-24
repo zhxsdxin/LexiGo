@@ -969,7 +969,7 @@ window.LexiGo.N3_BANK = { id: "n3", name: "N3 词汇王炸", words: [
   { id: 'n3cd81', word: '頼む', kana: 'たのむ', pitch: 2, pos: '动词', posAll: '动词', meaning: '请求，委托；点餐', part: 'core', chapter: '动词' },
   { id: 'n3cd82', word: '引く', kana: 'ひく', pitch: 2, pos: '动词', posAll: '动词', meaning: '拉；抽；查（字典）', part: 'core', chapter: '动词' },
   { id: 'n3cd83', word: '立つ', kana: 'たつ', pitch: 1, pos: '动词', posAll: '动词', meaning: '站立；有用', part: 'core', chapter: '动词' },
-  { id: 'n3cd84', word: '編む', kana: 'あむ♪', pitch: 1, pos: '动词', posAll: '动词', meaning: '编织', part: 'core', chapter: '动词' },
+  { id: 'n3cd84', word: '編む', kana: 'あむ', pitch: 1, pos: '动词', posAll: '动词', meaning: '编织', part: 'core', chapter: '动词' },
   { id: 'n3cd85', word: '叫ぶ', kana: 'さけぶ', pitch: 2, pos: '动词', posAll: '动词', meaning: '喊叫，呼喊；呼吁', part: 'core', chapter: '动词' },
   { id: 'n3cd86', word: '並ぶ', kana: 'ならぶ', pitch: 0, pos: '动词', posAll: '动词', meaning: '排列；并列', part: 'core', chapter: '动词' },
   { id: 'n3cd87', word: '運ぶ', kana: 'はこぶ', pitch: 0, pos: '自他サ1', posAll: '自他サ1', meaning: '搬运；进展', part: 'core', chapter: '动词' },

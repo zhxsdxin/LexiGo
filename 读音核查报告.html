@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexiGo 例句读音核查（已修复）</title><style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c1f23;--ink2:#5b6470;--faint:#98a1ad;--line:#e3e7ec;--accent:#2f6feb;--warn:#c2410c;--warnbg:#fff4ed;--ok:#15803d}
+*{box-sizing:border-box}body{margin:0;padding:32px 24px 64px;background:var(--bg);color:var(--ink);font:14px/1.7 -apple-system,"PingFang SC","Hiragino Sans","Noto Sans JP",sans-serif}
+.wrap{max-width:1180px;margin:0 auto}h1{font-size:22px;margin:0 0 6px}.sub{color:var(--ink2);font-size:13px;margin:0 0 24px}
+.box{background:#eef7f0;border:1px solid #cfe8d6;border-radius:10px;padding:14px 18px;margin-bottom:26px;font-size:13.5px;color:#14663a}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 18px;min-width:140px}
+.stat b{display:block;font-size:20px;line-height:1.3}.stat span{color:var(--faint);font-size:12px}
+h2{font-size:16px;margin:30px 0 10px;padding-left:10px;border-left:3px solid var(--accent)}
+p.note{color:var(--ink2);font-size:13px;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px}
+th{background:#f0f2f5;text-align:left;padding:9px 11px;font-weight:600;color:var(--ink2);font-size:12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid #eef1f4;vertical-align:top}tr:last-child td{border-bottom:none}
+td.w{font-size:15px;font-weight:600;white-space:nowrap;font-family:"Hiragino Sans","Noto Sans JP",serif}
+td.r{white-space:nowrap;font-family:"Hiragino Sans","Noto Sans JP",serif}td.bad{color:var(--warn);background:var(--warnbg)}
+td.f{color:var(--ok);font-family:"Hiragino Sans","Noto Sans JP",serif}
+td.id{color:var(--faint);font-size:12px;white-space:nowrap;font-family:ui-monospace,monospace}
+td.s{color:var(--ink2);font-size:12.5px;font-family:"Hiragino Sans","Noto Sans JP",serif}
+td.ruby{color:var(--faint);font-size:11.5px;font-family:ui-monospace,monospace}td.n{color:var(--ink2);font-size:12.5px}
+.tag{display:inline-block;padding:1px 6px;border-radius:5px;font-size:11px}.t3{background:#e8f0fe;color:#2f6feb}.t2{background:#fdece8;color:#c2410c}
+.scroll{overflow-x:auto;border-radius:10px}
+.method{margin-top:32px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 20px;font-size:13px;color:var(--ink2)}
+.method li{margin:4px 0}code{background:#f0f2f5;padding:1px 5px;border-radius:4px;font-size:12px}
+</style></head><body><div class="wrap">
+<h1>LexiGo 例句读音核查</h1>
+<p class="sub">2026-10-25 · N3 1483 词 + N2 1482 词 · 例句 1093 条（仅 N2 核心篇）</p>
+
+<div class="box"><b>当前状态：全部通过。</b> <code>node tools/check_examples.mjs</code> 退出码 0 —— 例句读音与卡片一致、汉字 100% 有 ruby 覆盖、无简体字形、kana 字段无杂字符。</div>
+
+<div class="stats">
+ <div class="stat"><b>1093</b><span>带例句词条</span></div>
+ <div class="stat"><b>4877 / 4877</b><span>汉字 ruby 覆盖率</span></div>
+ <div class="stat"><b>14</b><span>多音字读音已订正</span></div>
+ <div class="stat"><b>7</b><span>简体字形已订正</span></div>
+ <div class="stat"><b>10</b><span>词条自身错字已订正</span></div>
+</div>
+
+<h2>发音读哪串</h2>
+<p class="note">卡片显示用的是 <code>example.ruby</code>（渲染成 &lt;ruby&gt;），发音原先读 <code>example.jp</code>（汉字原文），引擎要自己猜每个汉字的读音。现在改成读 ruby 展平后的假名串 —— 显示与发音共用同一份数据，不会再出现「看到的注音和听到的不一样」。</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>词目</th><th>卡片读音</th><th>发音实际读</th></tr></thead><tbody>
+<tr><td class="id">n2cx1</td><td class="w">辛い</td><td class="r">つらい</td><td class="s">このしごとのノルマはとてもつらい。</td></tr>
+<tr><td class="id">n2cd122</td><td class="w">被る</td><td class="r">かぶる</td><td class="s">ぼうしをかぶる。</td></tr>
+<tr><td class="id">n2ch209</td><td class="w">分別</td><td class="r">ぶんべつ</td><td class="s">しげんごみのぶんべつがてっていされている。</td></tr>
+<tr><td class="id">n2cx20</td><td class="w">鈍い</td><td class="r">のろい</td><td class="s">のろいうごきでまわりにめいわくをかける。</td></tr>
+</tbody></table></div>
+
+<h2>一、双保险第 2 层：jp 里写成假名的 10 条</h2>
+<p class="note">发音现在读 ruby，这层是冗余保险 —— 万一以后退回读 jp，这 10 条仍然是对的。ruby 保留汉字形，显示不受影响。</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>词目</th><th>读音</th><th>jp（假名化）</th><th>ruby 表记（显示用）</th></tr></thead><tbody><tr><td class="id">n2ch2</td><td class="w">蓮</td><td class="r">はす</td>
+  <td class="s">池のはすの花が美しく咲いている。</td><td class="s ruby">池の蓮の花が美しく咲いている。</td></tr><tr><td class="id">n2ch3</td><td class="w">柄</td><td class="r">がら</td>
+  <td class="s">このワンピースのがらは派手すぎるかな。</td><td class="s ruby">このワンピースの柄は派手すぎるかな。</td></tr><tr><td class="id">n2ch11</td><td class="w">楽</td><td class="r">らく</td>
+  <td class="s">思ったよりらくに問題が解けた。</td><td class="s ruby">思ったより楽に問題が解けた。</td></tr><tr><td class="id">n2cd177</td><td class="w">抱く</td><td class="r">いだく</td>
+  <td class="s">不安をいだく。</td><td class="s ruby">不安を抱く。</td></tr><tr><td class="id">n2cd242</td><td class="w">言づける</td><td class="r">ことづける</td>
+  <td class="s">伝言をことづける。</td><td class="s ruby">伝言を言づける。</td></tr><tr><td class="id">n2cx1</td><td class="w">辛い</td><td class="r">つらい</td>
+  <td class="s">この仕事のノルマはとてもつらい。</td><td class="s ruby">この仕事のノルマはとても辛い。</td></tr><tr><td class="id">n2cx8</td><td class="w">温い</td><td class="r">ぬるい</td>
+  <td class="s">お茶がぬるくなってしまった。</td><td class="s ruby">お茶が温くなってしまった。</td></tr><tr><td class="id">n2cx19</td><td class="w">鈍い</td><td class="r">にぶい</td>
+  <td class="s">この包丁はにぶくてよく切れない。</td><td class="s ruby">この包丁は鈍くてよく切れない。</td></tr><tr><td class="id">n2cx20</td><td class="w">鈍い</td><td class="r">のろい</td>
+  <td class="s">のろい動きで周りに迷惑をかける。</td><td class="s ruby">鈍い動きで周りに迷惑をかける。</td></tr><tr><td class="id">n2cf46</td><td class="w">一通り</td><td class="r">ひととおり</td>
+  <td class="s">ひととおり目を通した。</td><td class="s ruby">一通り目を通した。</td></tr></tbody></table></div>
+
+<h2>二、多音字读音订正 14 条</h2>
+<p class="note">全部按 Jisho 词条 API 逐条核实过义项。</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>词目</th><th>原读音</th><th>订正为</th><th>依据</th></tr></thead><tbody><tr><td class="id">n2ch2</td><td class="w">蓮</td><td class="r bad">はちす</td><td class="f">はす</td><td class="n">佛教读音，卡片是 はす</td></tr><tr><td class="id">n2ch3</td><td class="w">柄</td><td class="r bad">え</td><td class="f">がら</td><td class="n">え＝把手，がら＝花纹</td></tr><tr><td class="id">n2ch209</td><td class="w">分別</td><td class="r bad">ふんべつ</td><td class="f">ぶんべつ</td><td class="n">ふんべつ＝判断力，ぶんべつ＝分类</td></tr><tr><td class="id">n2cd9</td><td class="w">敵う</td><td class="r bad">てき</td><td class="f">かな</td><td class="n">てき 是「敵」的音读</td></tr><tr><td class="id">n2cd96</td><td class="w">弄る</td><td class="r bad">いじく</td><td class="f">いじ</td><td class="n">いじく 属于「弄くる」</td></tr><tr><td class="id">n2cd122</td><td class="w">被る</td><td class="r bad">こうむ</td><td class="f">かぶ</td><td class="n">こうむる＝蒙受，かぶる＝戴</td></tr><tr><td class="id">n2cd207</td><td class="w">授ける</td><td class="r bad">さづ</td><td class="f">さず</td><td class="n">清音 ず</td></tr><tr><td class="id">n2cd217</td><td class="w">預ける</td><td class="r bad">あづ</td><td class="f">あず</td><td class="n">清音 ず</td></tr><tr><td class="id">n2cd238</td><td class="w">躾ける</td><td class="r bad">しつけ</td><td class="f">しつ</td><td class="n">ruby 多写了一个「け」</td></tr><tr><td class="id">n2cd242</td><td class="w">言づける</td><td class="r bad">げん</td><td class="f">こと</td><td class="n">げん 是「言」的音读</td></tr><tr><td class="id">n2cx8</td><td class="w">温い</td><td class="r bad">ぬく</td><td class="f">ぬる</td><td class="n">ぬくい 是另一读音</td></tr><tr><td class="id">n2cx20</td><td class="w">鈍い</td><td class="r bad">にぶ</td><td class="f">のろ</td><td class="n">にぶい＝钝，のろい＝迟缓</td></tr><tr><td class="id">n2cx35</td><td class="w">根気強い</td><td class="r bad">こんきつよ</td><td class="f">こんきづよ</td><td class="n">浊音 づ</td></tr><tr><td class="id">n2cf46</td><td class="w">一通り</td><td class="r bad">いちとおり</td><td class="f">ひととおり</td><td class="n">いち 是「一」的音读</td></tr></tbody></table></div>
+
+<h2>三、简体中文字形订正 7 条</h2>
+<p class="note">日语里「後」不是「后」、「願」不是「愿」。原先 ruby 把「后」注成了 きさき（皇后），发音会直接念错。</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>原字形</th><th>订正为</th><th>原 ruby</th><th>订正后 ruby</th></tr></thead><tbody><tr><td class="id">n2ch25</td><td class="w bad">今后</td><td class="f">今後</td><td class="s ruby">[今|こん][后|きさき]</td><td class="f">[今後|こんご]</td></tr><tr><td class="id">n2cd222</td><td class="w bad">午后</td><td class="f">午後</td><td class="s ruby">[午后|ごご]</td><td class="f">[午後|ごご]</td></tr><tr><td class="id">n2cd282</td><td class="w bad">后ろ</td><td class="f">後ろ</td><td class="s ruby">[后|きさき]ろ</td><td class="f">[後|うし]ろ</td></tr><tr><td class="id">n2cd285</td><td class="w bad">后で</td><td class="f">後で</td><td class="s ruby">[后|きさき]で</td><td class="f">[後|あと]で</td></tr><tr><td class="id">n2cx75</td><td class="w bad">お愿い</td><td class="f">お願い</td><td class="s ruby">[愿|すなお]い</td><td class="f">[願|ねが]い</td></tr><tr><td class="id">n2cw75</td><td class="w bad">食事の后</td><td class="f">食事の後</td><td class="s ruby">[后|きさき]に</td><td class="f">[後|あと]に</td></tr><tr><td class="id">n2cf15</td><td class="w bad">今后</td><td class="f">今後</td><td class="s ruby">[今|こん][后|きさき]</td><td class="f">[今後|こんご]</td></tr></tbody></table></div>
+
+<h2>四、词条自身错字 10 条</h2>
+<div class="scroll"><table><thead><tr><th>库</th><th>ID</th><th>词目</th><th>原读音</th><th>订正为</th><th>问题</th></tr></thead><tbody><tr><td><span class="tag t2">N2</span></td><td class="id">n2cx68</td><td class="w">羨ましい</td><td class="r bad">うらやまし</td><td class="f">うらやましい</td><td class="n">读音少一个「い」</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2cx41</td><td class="w">かっこい</td><td class="r bad">かっこいい</td><td class="f">かっこいい</td><td class="n">词目少一个「い」</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2cx75</td><td class="w">厚かまし</td><td class="r bad">あつかましい</td><td class="f">厚かましい</td><td class="n">词目少一个「い」</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2ch371</td><td class="w">精一杯</td><td class="r bad">せいいっぱぃ</td><td class="f">せいいっぱい</td><td class="n">小写的 ぃ</td></tr><tr><td><span class="tag t3">N3</span></td><td class="id">n3cd84</td><td class="w">編む</td><td class="r bad">あむ♪</td><td class="f">あむ</td><td class="n">读音混入音符</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2b35</td><td class="w">コピペ</td><td class="r bad">こぴぺ</td><td class="f">コピペ</td><td class="n">外来语读音被转成平假名</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2b54</td><td class="w">ステーキ</td><td class="r bad">すてーきsteak</td><td class="f">ステーキ</td><td class="n">src 串进 kana</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2b87</td><td class="w">バラ</td><td class="r bad">ばら</td><td class="f">バラ</td><td class="n">外来语读音被转成平假名</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2b118</td><td class="w">ネズミ</td><td class="r bad">ねずみ</td><td class="f">ネズミ</td><td class="n">外来语读音被转成平假名</td></tr><tr><td><span class="tag t2">N2</span></td><td class="id">n2b305</td><td class="w">マニュアル</td><td class="r bad">まにゅある</td><td class="f">マニュアル</td><td class="n">外来语读音被转成平假名</td></tr></tbody></table></div>
+
+<div class="method"><b>防复发</b>
+<ul>
+<li><code>tools/check_examples.mjs</code>：例句读音 vs 卡片 kana、汉字 ruby 覆盖、jp/ruby 表记差异、简体字形、kana 杂字符，五项全查，有问题退出码 1。</li>
+<li>词干匹配限定在 token 边界，否则「言づける」会先命中「伝言」里的「言」而误报。</li>
+<li>活用形（狙って、伺います）与 jp 已假名化的条目自动跳过，不算问题。</li>
+</ul></div>
+</div></body></html>

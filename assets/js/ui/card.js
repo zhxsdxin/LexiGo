@@ -81,8 +81,13 @@
 
   /**
    * 发音按钮要朗读的文本。
-   * 正面始终读词头（词 + 读音，中间顿一下便于听清）；
+   * 正面读词头（词 + 读音，中间顿一下便于听清）；
    * 背面若卡面展示了日文例句，则读整句，没有例句时才退回读词。
+   *
+   * 例句读的是「ruby 展平后的假名串」，不是 jp 那条汉字原文：
+   * 引擎得自己猜汉字读音，遇到 辛い(からい/つらい)、柄(がら/え)、
+   * 分別(ぶんべつ/ふんべつ) 这类多音字就会念错义项。词库里每条例句的
+   * 汉字都带 ruby 注解，展平出来就是一条完整的假名句，读音确定。
    * @param {boolean} isBack 是否为背面按钮
    * @param {object} word    词库条目
    */
@@ -90,7 +95,10 @@
     var head = word.word + '、' + word.kana;
     if (!isBack) return head;
     var ex = word.example;
-    return (ex && ex.jp) ? ex.jp : head;
+    if (!ex) return head;
+    // 有 ruby 就展平它；只有 jp（无 ruby 标注）时退回 jp
+    var text = ex.ruby ? rubyToKana(ex.ruby) : (ex.jp || '');
+    return text || head;
   }
 
   /**
@@ -283,6 +291,20 @@
     if (last < text.length) {
       el.appendChild(doc.createTextNode(text.slice(last)));
     }
+  }
+
+  /**
+   * [漢字|よみ] 标记 → 纯假名串（给发音用）。
+   * 只取标注里的读音，标记外的假名/片假名原样保留，与 renderRuby 的解析规则一致。
+   * 没有标记时原样返回。
+   * @param {string} text 含 [漢字|よみ] 标记的文本
+   * @returns {string} 展平后的假名串
+   */
+  function rubyToKana(text) {
+    if (!text) return '';
+    return text.replace(/\[([^\[\]|]+)\|([^\[\]|]+)\]/g, function (m, kanji, kana) {
+      return kana;
+    });
   }
 
   /**
