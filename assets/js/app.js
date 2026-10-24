@@ -163,19 +163,30 @@
     });
   }
 
-  /** 顶栏词库名随选择更新 */
+  /** 顶栏词库名随选择更新。跨库勾选时各库用 + 连接，如「N3·基础 + N2·汉字」 */
+  function shortBankName(bank) {
+    var m = /^(N\d)/.exec(bank.name);
+    return m ? m[1] : bank.name;
+  }
+
   function renderDeckName() {
     var el = document.querySelector('[data-deck-name]');
-    if (!el) return;
-    var bank = LG.DeckMenu ? LG.DeckMenu.currentBank() : null;
-    if (!bank) return;
+    if (!el || !LG.DeckMenu) return;
     var sel = LG.DeckMenu.loadSelection();
-    var names = [];
-    (sel.subsets || []).forEach(function (id) {
-      var def = LG.Banks.getSubset(id);
-      if (def) names.push(def.name);
+    var parts = [];
+    (sel.banks ? Object.keys(sel.banks) : []).forEach(function (bankId) {
+      var subs = sel.banks[bankId];
+      if (!subs || !subs.length) return;
+      var bank = LG.Banks.get(bankId);
+      if (!bank) return;
+      var names = [];
+      subs.forEach(function (id) {
+        var def = LG.Banks.getSubset(id);
+        if (def) names.push(def.name);
+      });
+      parts.push(shortBankName(bank) + (names.length ? '·' + names.join('/') : ''));
     });
-    el.textContent = names.length ? bank.name + ' · ' + names.join('/') : bank.name;
+    el.textContent = parts.length ? parts.join(' + ') : '未选范围';
   }
 
   /** 学习 / 复习页的卡片支持左右滑动切词、上下滑动翻面 */

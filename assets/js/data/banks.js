@@ -206,18 +206,22 @@
   }
 
   /**
-   * 当前生效范围内的全部词条。
-   * ids 为 null 表示不限（整库）；空数组表示用户主动清空了子集。
+   * 当前生效范围内的全部词条 —— 跨词库并集。
+   *
+   * 每个词库各自记住自己的子集勾选，两个库都勾了就合并成一个学习范围，
+   * 按词库注册顺序排列（N3 在前、N2 在后）。
+   * activeIds 返回 null 表示该库从未选过，不参与；空数组表示用户清空了，贡献 0 词。
    */
   function activeWords() {
     if (!global.LexiGo || !global.LexiGo.DeckMenu) return [];
     var deck = global.LexiGo.DeckMenu;
-    var bank = deck.currentBank();
-    if (!bank) return [];
-    var ids = deck.activeIds(bank.id);
     var out = [];
-    bank.words.forEach(function (w) {
-      if (ids === null || ids.indexOf(w.id) >= 0) out.push(w);
+    banks.forEach(function (b) {
+      var ids = deck.activeIds(b.id);
+      if (!ids) return;
+      b.words.forEach(function (w) {
+        if (ids.indexOf(w.id) >= 0) out.push(w);
+      });
     });
     return out;
   }

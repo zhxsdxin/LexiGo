@@ -18,17 +18,14 @@
   var state = null;
   var onStateChange = null;
 
-  /** 当前生效的词库与单词列表（受子集勾选影响） */
+  /**
+   * 当前生效的词库与单词列表（受子集勾选影响）。
+   * 支持跨词库：几个库都勾了子集就一起学，走 Banks.activeWords() 的并集。
+   */
   function activeWords() {
     var deck = LG.DeckMenu;
-    var bank = deck.currentBank();
-    if (!bank) return { bank: null, words: [] };
-    var ids = deck.activeIds(bank.id);
-    var out = [];
-    bank.words.forEach(function (w) {
-      if (ids === null || ids.indexOf(w.id) >= 0) out.push(w);
-    });
-    return { bank: bank, words: out };
+    var bank = deck ? deck.currentBank() : null;
+    return { bank: bank, words: LG.Banks.activeWords() };
   }
 
   /** 当前词序：sequential（词库顺序）或 random（随机） */
@@ -242,8 +239,6 @@
 
   /** 一个词都没选中时的提示，引导去选子集 */
   function renderEmpty() {
-    var scope = activeWords();
-    var bank = scope.bank;
     els.empty.hidden = false;
     els.empty.innerHTML =
       '<div class="state">' +
@@ -252,9 +247,7 @@
       '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2 2 2 0 0 1 2-2h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M12 6v16"/>' +
       '</svg></div>' +
       '<h2 class="state__title">当前范围没有单词</h2>' +
-      '<p class="state__desc">' +
-      (bank ? '「' + bank.name + '」里还没有勾选任何子集，选一个就能开始。' : '请先选择一个词库。') +
-      '</p>' +
+      '<p class="state__desc">还没有勾选任何子集，选一个就能开始（可以同时勾多个词库）。</p>' +
       '<button type="button" class="btn btn--primary btn--block" data-act="pickset">选择子集</button>' +
       '</div>';
 

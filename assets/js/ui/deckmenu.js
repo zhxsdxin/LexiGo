@@ -2,15 +2,19 @@
  * 词库与子集选择
  * ---------------------------------------------------------------
  * 顶栏按钮打开。支持：
- *   - 切换词库（N3 全量 / 示例库）
+ *   - 切换词库（N3 全量 / N2 全量 / 示例库）
  *   - 勾选子集，可多选；只勾一个即单选
+ *   - 每个词库各自记住自己的勾选，切换词库不会清掉上一个库的选择，
+ *     两个库都有勾选时合并成一个学习范围（跨库一起学）
  *   - 选择结果写入 localStorage，学习与复习按选中范围过滤
  */
 (function (global) {
   'use strict';
 
   var LG = global.LexiGo;
-  var KEY = 'lexigo.selection.v1';
+  var KEY = 'lexigo.selection.v2';
+  // 老版本只有一个当前库的选择，读到就迁移到 v2 结构
+  var KEY_LEGACY = 'lexigo.selection.v1';
 
   // 首次进入（localStorage 没有记录）时的默认范围：N3 词汇王炸 · 基础词。
   // 显式写出来，而不是依赖词库注册顺序，便于以后统一调整。
@@ -36,21 +40,74 @@
   }
 
   // ---- 持久化 ----
-  function loadSelection() {
+  //
+  // 选择状态的结构（v2）：
+  //   {
+  //     version: 2,
+  //     currentBankId: 'n3',        // 面板里正在查看/编辑的那个库
+  //     banks: { n3: ['basic'], n2: ['kanji'] }   // 每个库各自勾选的子集
+  //   }
+  // banks 里没有某个库的键 = 这个库还没选过，不参与学习；
+  // 键存在但数组为空 = 用户主动清空了这个库，同样贡献 0 词。
+
+  function readKey(k) {
     try {
-      var raw = localStorage.getItem(KEY);
-      if (raw) {
-        var v = JSON.parse(raw);
-        if (v && typeof v === 'object') return v;
+      var raw = localStorage.getItem(k);
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      return (v && typeof v === 'object') ? v : null;
+    } catch (e) { return null; }
+  }
+
+  /** 把任意历史格式收敛成 v2 结构 */
+  function normalizeSel(v) {
+    var out = { version: 2, currentBankId: '', banks: {} };
+    if (!v || typeof v !== 'object') return out;
+
+    // v1：{ bankId, subsets } —— 只有一个库的选择
+    if (v.subsets && !v.banks) {
+      out.currentBankId = v.bankId || '';
+      if (out.currentBankId) out.banks[out.currentBankId] = v.subsets.slice();
+      return out;
+    }
+
+    out.currentBankId = v.currentBankId || v.bankId || '';
+    var src = v.banks || {};
+    Object.keys(src).forEach(function (k) {
+      if (Object.prototype.toString.call(src[k]) === '[object Array]') {
+        out.banks[k] = src[k].slice();
       }
-    } catch (e) { /* 忽略 */ }
-    return { bankId: DEFAULT_BANK_ID, subsets: DEFAULT_SUBSETS.slice() };
+    });
+    return out;
+  }
+
+  function defaultSelection() {
+    var d = { version: 2, currentBankId: DEFAULT_BANK_ID, banks: {} };
+    d.banks[DEFAULT_BANK_ID] = DEFAULT_SUBSETS.slice();
+    return d;
+  }
+
+  function loadSelection() {
+    var v2 = readKey(KEY);
+    if (v2) return normalizeSel(v2);
+    var v1 = readKey(KEY_LEGACY);
+    if (v1) return normalizeSel(v1);
+    return defaultSelection();
   }
 
   function saveSelection(v) {
+    var out = normalizeSel(v);
+    if (!out.currentBankId) out.currentBankId = DEFAULT_BANK_ID;
     try {
-      localStorage.setItem(KEY, JSON.stringify(v));
+      localStorage.setItem(KEY, JSON.stringify(out));
     } catch (e) { /* 忽略 */ }
+    return out;
+  }
+
+  /** 某个库当前勾选的子集（只读，不存在时返回 null 而不是建空数组） */
+  function subsOf(sel, bankId) {
+    if (!sel || !sel.banks) return null;
+    return sel.banks[bankId] || null;
   }
 
   function availableBanks() {
@@ -61,22 +118,33 @@
     var sel = loadSelection();
     var banks = availableBanks();
     var found = null;
-    banks.forEach(function (b) { if (b.id === sel.bankId) found = b; });
+    banks.forEach(function (b) { if (b.id === sel.currentBankId) found = b; });
     return found || banks[0] || null;
   }
 
   /**
-   * 当前生效的单词 id 列表。
-   * 返回 null 表示「不限制」，即整个词库。
+   * 某个库当前生效的单词 id 列表。
    *
-   * 注意：用户主动清空子集后，语义是「暂时不学任何词」而不是「全选」，
-   * 所以只要该库已经保存过选择（含空数组），就返回实际结果（空数组）。
-   * 只有从未选过的库才返回 null，即首次进入时的全选。
+   * 返回 null = 这个库还没选过，不参与学习（不是「全选」）。
+   * 返回数组 = 具体 id；空数组表示用户把这个库清空了，贡献 0 词。
    */
   function activeIds(bankId) {
     var sel = loadSelection();
-    if (sel.bankId !== bankId) return null;   // 该库还没选过 → 全选
-    return LG.Banks.mergeSubsetIds(bankId, sel.subsets) || [];
+    var subs = subsOf(sel, bankId);
+    if (!subs) return null;
+    return LG.Banks.mergeSubsetIds(bankId, subs) || [];
+  }
+
+  /** 已纳入学习范围的词库 id（有勾选、且确实选到词的） */
+  function activeBankIds() {
+    var sel = loadSelection();
+    var out = [];
+    LG.Banks.all().forEach(function (b) {
+      var subs = subsOf(sel, b.id);
+      if (!subs || !subs.length) return;
+      out.push(b.id);
+    });
+    return out;
   }
 
   // ---- 渲染 ----
@@ -110,11 +178,13 @@
     if (!draft) draft = loadSelection();
 
     // 没选过库时默认第一个
-    var has = banks.some(function (b) { return b.id === draft.bankId; });
-    if (!has) draft.bankId = banks.length ? banks[0].id : '';
+    var has = banks.some(function (b) { return b.id === draft.currentBankId; });
+    if (!has) draft.currentBankId = banks.length ? banks[0].id : '';
 
     var bank = null;
-    banks.forEach(function (b) { if (b.id === draft.bankId) bank = b; });
+    banks.forEach(function (b) { if (b.id === draft.currentBankId) bank = b; });
+    // 当前库已勾选的子集；没选过时是空数组（界面上表现为一个都没勾）
+    var curSubs = subsOf(draft, draft.currentBankId) || [];
 
     var html =
       '<div class="deckmenu__head">' +
@@ -128,12 +198,16 @@
     if (banks.length > 1) {
       html += '<p class="deckmenu__label">词库</p><div class="deckmenu__banks">';
       banks.forEach(function (b) {
-        var on = b.id === draft.bankId;
+        var on = b.id === draft.currentBankId;
+        // 这个库被选了多少词 —— 切换走之后仍然显示，方便看出哪些库在生效
+        var n = countBank(draft, b.id);
         html +=
-          '<button type="button" class="deckbank' + (on ? ' is-on' : '') + '" data-bank="' +
-          esc(b.id) + '">' +
+          '<button type="button" class="deckbank' + (on ? ' is-on' : '') +
+          (n > 0 && !on ? ' is-picked' : '') + '" data-bank="' + esc(b.id) + '">' +
           '<span class="deckbank__name">' + esc(b.name) + '</span>' +
-          '<span class="deckbank__count">' + b.total + ' 词</span>' +
+          '<span class="deckbank__count' + (n > 0 ? ' is-on' : '') + '">' +
+          (n > 0 ? '已选 ' + n + ' / ' + b.total : b.total + ' 词') +
+          '</span>' +
           '</button>';
       });
       html += '</div>';
@@ -155,8 +229,8 @@
     groups.forEach(function (g) {
       html += '<p class="deckmenu__group">' + esc(g.name) + '</p>';
       g.items.forEach(function (d) {
-        var ids = LG.Banks.subsetIds(draft.bankId, d.id);
-        var on = draft.subsets.indexOf(d.id) >= 0;
+        var ids = LG.Banks.subsetIds(draft.currentBankId, d.id);
+        var on = curSubs.indexOf(d.id) >= 0;
         var disabled = ids.length === 0;
         html +=
           '<button type="button" class="deckchip' + (on ? ' is-on' : '') +
@@ -178,29 +252,69 @@
 
     // 底部操作
     var active = countActive(draft);
+    var nbanks = activeBankIdsIn(draft).length;
     html +=
       '<div class="deckmenu__foot">' +
-      '<button type="button" class="deckmenu__all" data-act="all">全选</button>' +
-      '<button type="button" class="deckmenu__all" data-act="none">清空</button>' +
-      '<span class="deckmenu__summary">已选 <strong>' + active + '</strong> 词</span>' +
+      '<button type="button" class="deckmenu__all" data-act="all" title="勾选当前词库的全部子集">全选本库</button>' +
+      '<button type="button" class="deckmenu__all" data-act="none" title="取消当前词库的勾选">清空本库</button>' +
+      '<span class="deckmenu__summary">已选 <strong>' + active + '</strong> 词' +
+      (nbanks > 1 ? '<span class="deckmenu__summary-note"> · ' + nbanks + ' 个词库</span>' : '') +
+      '</span>' +
       '<button type="button" class="btn btn--primary deckmenu__apply" data-act="apply">开始学习</button>' +
       '</div>';
 
     panel.innerHTML = html;
   }
 
+  /** 单个词库被选中的词数（跨子集去重） */
+  function countBank(d, bankId) {
+    var subs = subsOf(d, bankId);
+    if (!subs || !subs.length) return 0;
+    var ids = LG.Banks.mergeSubsetIds(bankId, subs);
+    return ids ? ids.length : 0;
+  }
+
+  /** 草稿里已经纳入学习范围的词库 id */
+  function activeBankIdsIn(d) {
+    var out = [];
+    LG.Banks.all().forEach(function (b) {
+      if (countBank(d, b.id) > 0) out.push(b.id);
+    });
+    return out;
+  }
+
+  /** 全部词库合计的选中词数（id 全局唯一，去重后相加） */
   function countActive(d) {
-    var merged = LG.Banks.mergeSubsetIds(d.bankId, d.subsets);
-    if (!merged) {
-      var b = LG.Banks.get(d.bankId);
-      return b ? b.total : 0;
-    }
-    return merged.length;
+    var seen = {};
+    var n = 0;
+    LG.Banks.all().forEach(function (b) {
+      var subs = subsOf(d, b.id);
+      if (!subs || !subs.length) return;
+      var ids = LG.Banks.mergeSubsetIds(b.id, subs) || [];
+      ids.forEach(function (id) {
+        if (!seen[id]) { seen[id] = 1; n++; }
+      });
+    });
+    return n;
   }
 
   function refreshSummary() {
-    var el = panel.querySelector('.deckmenu__summary strong');
-    if (el) el.textContent = countActive(draft);
+    var box = panel.querySelector('.deckmenu__summary');
+    if (!box) return;
+    var strong = box.querySelector('strong');
+    if (strong) strong.textContent = countActive(draft);
+    var nbanks = activeBankIdsIn(draft).length;
+    var note = box.querySelector('.deckmenu__summary-note');
+    if (nbanks > 1) {
+      if (!note) {
+        note = document.createElement('span');
+        note.className = 'deckmenu__summary-note';
+        box.appendChild(note);
+      }
+      note.textContent = ' · ' + nbanks + ' 个词库';
+    } else if (note) {
+      note.remove();
+    }
   }
 
   // ---- 交互 ----
@@ -210,8 +324,8 @@
 
     var bankBtn = e.target.closest('[data-bank]');
     if (bankBtn) {
-      draft.bankId = bankBtn.getAttribute('data-bank');
-      draft.subsets = [];          // 换库后重置子集选择
+      // 只切换「正在编辑哪个库」，各库自己的勾选原样保留
+      draft.currentBankId = bankBtn.getAttribute('data-bank');
       render();
       return;
     }
@@ -219,11 +333,15 @@
     var chip = e.target.closest('[data-subset]');
     if (chip && !chip.disabled) {
       var id = chip.getAttribute('data-subset');
-      var i = draft.subsets.indexOf(id);
-      if (i >= 0) draft.subsets.splice(i, 1);
-      else draft.subsets.push(id);
+      var subs = subsOf(draft, draft.currentBankId);
+      if (!subs) { subs = []; draft.banks[draft.currentBankId] = subs; }
+      var i = subs.indexOf(id);
+      if (i >= 0) subs.splice(i, 1);
+      else subs.push(id);
       chip.classList.toggle('is-on');
       chip.setAttribute('aria-pressed', chip.classList.contains('is-on') ? 'true' : 'false');
+      // 词库按钮上的「已选 N」也要跟着变
+      updateBankCounts();
       refreshSummary();
       return;
     }
@@ -232,19 +350,37 @@
     if (!act) return;
     var what = act.getAttribute('data-act');
     if (what === 'all') {
-      draft.subsets = LG.Banks.subsets()
+      draft.banks[draft.currentBankId] = LG.Banks.subsets()
         .filter(function (d) {
-          return LG.Banks.subsetIds(draft.bankId, d.id).length > 0;
+          return LG.Banks.subsetIds(draft.currentBankId, d.id).length > 0;
         })
         .map(function (d) { return d.id; });
       render();
     } else if (what === 'none') {
-      draft.subsets = [];
+      draft.banks[draft.currentBankId] = [];
       render();
     } else if (what === 'apply') {
       saveSelection(draft);
       close();
       if (ctx && ctx.onApply) ctx.onApply();
+    }
+  }
+
+  /** 只改词库按钮右侧的计数，不整块重绘 */
+  function updateBankCounts() {
+    var btns = panel.querySelectorAll('[data-bank]');
+    for (var i = 0; i < btns.length; i++) {
+      var btn = btns[i];
+      var bid = btn.getAttribute('data-bank');
+      var bank = LG.Banks.get(bid);
+      if (!bank) continue;
+      var n = countBank(draft, bid);
+      var el = btn.querySelector('.deckbank__count');
+      if (el) {
+        el.textContent = n > 0 ? ('已选 ' + n + ' / ' + bank.total) : (bank.total + ' 词');
+        el.classList.toggle('is-on', n > 0);
+      }
+      btn.classList.toggle('is-picked', n > 0 && bid !== draft.currentBankId);
     }
   }
 
@@ -303,7 +439,9 @@
     toggle: toggle,
     currentBank: currentBank,
     activeIds: activeIds,
+    activeBankIds: activeBankIds,
     loadSelection: loadSelection,
-    saveSelection: saveSelection
+    saveSelection: saveSelection,
+    normalizeSelection: normalizeSel
   };
 })(window);

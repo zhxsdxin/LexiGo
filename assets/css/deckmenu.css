@@ -139,6 +139,12 @@
   background: var(--accent-soft);
 }
 
+/* 当前没在编辑、但这个库也有勾选 —— 提示它同样在生效 */
+.deckbank.is-picked {
+  border-color: var(--accent-line, var(--line));
+  background: var(--bg-soft);
+}
+
 .deckbank__name {
   font-size: 14px;
   color: var(--ink);
@@ -148,6 +154,10 @@
   font-size: 12px;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
+}
+
+.deckbank__count.is-on {
+  color: var(--accent);
 }
 
 /* ---------- 子集勾选 ---------- */
@@ -289,6 +299,10 @@
 .deckmenu__summary strong {
   color: var(--ink);
   font-weight: 600;
+}
+
+.deckmenu__summary-note {
+  color: var(--ink-faint);
 }
 
 .deckmenu__apply {
