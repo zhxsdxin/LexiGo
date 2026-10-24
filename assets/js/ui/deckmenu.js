@@ -255,8 +255,8 @@
     var nbanks = activeBankIdsIn(draft).length;
     html +=
       '<div class="deckmenu__foot">' +
-      '<button type="button" class="deckmenu__all" data-act="all" title="勾选当前词库的全部子集">全选本库</button>' +
-      '<button type="button" class="deckmenu__all" data-act="none" title="取消当前词库的勾选">清空本库</button>' +
+      '<button type="button" class="deckmenu__all" data-act="all" title="勾选当前词库的全部子集">全选</button>' +
+      '<button type="button" class="deckmenu__all" data-act="none" title="取消当前词库的勾选">清空</button>' +
       '<span class="deckmenu__summary">已选 <strong>' + active + '</strong> 词' +
       // 跨库时换行单独一行，不用「·」接在同一行末尾
       (nbanks > 1 ? '<span class="deckmenu__summary-note">' + nbanks + ' 个词库</span>' : '') +
