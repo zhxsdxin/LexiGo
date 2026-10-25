@@ -38,17 +38,29 @@
   var ICON_DONE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
-  // 从 hachiware 背景图池里按 seed 稳定取一张（同名 seed 永远返回同一张）。
+  // 背景图池：hachiware + chiikawa 合并。每张图带完整相对路径，
+  // 免得 pickGif 再区分两个目录。池只在首次调用时拼一次（不会变）。
+  var COMBINED_GIFS = null;
+  function gifPool() {
+    if (COMBINED_GIFS) return COMBINED_GIFS;
+    var LG = global.LexiGo || {};
+    var hw = (LG.HACHIWARE_GIFS || []).map(function (n) { return 'assets/gifs/hachiware/' + n; });
+    var ck = (LG.CHIIKAWA_GIFS || []).map(function (n) { return 'assets/gifs/chiikawa/' + n; });
+    COMBINED_GIFS = hw.concat(ck);
+    return COMBINED_GIFS;
+  }
+
+  // 从合并图池里按 seed 稳定取一张（同名 seed 永远返回同一张）。
   // 同一张卡片用相同 seed，背景就固定；不同卡片 seed 不同，自然分散到不同图。
   function pickGif(seed) {
-    var pool = (global.LexiGo && global.LexiGo.HACHIWARE_GIFS) || [];
+    var pool = gifPool();
     if (!pool.length) return '';
     var h = 2166136261; // FNV-1a
     for (var i = 0; i < seed.length; i++) {
       h ^= seed.charCodeAt(i);
       h = Math.imul(h, 16777619);
     }
-    return 'assets/gifs/hachiware/' + pool[(h >>> 0) % pool.length];
+    return pool[(h >>> 0) % pool.length];
   }
 
   /** 字符里是否含有汉字（CJK 统一表意文字） */
@@ -383,9 +395,9 @@
     refs.pitchBack.textContent = pitch;
     refs.pitchBack.hidden = !pitch || kanaMode;
 
-    // 背景：从 hachiware 图池随机取图，正反面各一张，无需为每张卡准备副本。
+    // 背景：从 hachiware + chiikawa 合并图池随机取图，正反面各一张，无需为每张卡准备副本。
     // 按词条 id 做稳定哈希，同一张卡片始终同一张背景（翻面不闪），
-    // 不同卡片自然分散到不同图。图池清单见 assets/gifs/hachiware/gifs.js。
+    // 不同卡片自然分散到不同图。图池清单见 assets/gifs/{hachiware,chiikawa}/gifs.js。
     // 透明度走 --bg-opacity 变量（设置项 bgOpacity 控制），关闭时清空背景图。
     var showBg = S ? S.get('showBackground') : true;
     var opacity = S ? S.get('bgOpacity') : 0.05;

@@ -5,7 +5,7 @@
  *
  * 可配置项：
  *   kanaMode       假名模式：正面显示假名+读音，背面显示汉字（+释义，条件见 card.js）
- *   showBackground 是否给卡片铺 hachiware 随机背景图
+ *   showBackground 是否给卡片铺 hachiware / chiikawa 随机背景图
  *   bgOpacity      背景透明度（showBackground 开启时生效）
  *
  * 三个值都存进 localStorage，刷新后保留。其它模块通过
@@ -125,7 +125,7 @@
       '</div>' +
       '<div class="settings__body">' +
       row('kanaMode', '假名模式', '正面显示假名与读音，背面显示汉字') +
-      row('showBackground', '显示卡片背景', '用 hachiware 图池里的图做卡片底纹') +
+      row('showBackground', '显示卡片背景', '用 hachiware / chiikawa 图池里的图做卡片底纹') +
       '<div class="settings__row settings__row--range" data-row="bgOpacity">' +
       '<div class="settings__text">' +
       '<span class="settings__label">背景透明度</span>' +
